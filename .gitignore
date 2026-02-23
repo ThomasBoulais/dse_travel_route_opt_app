@@ -1,5 +1,7 @@
 .venv
 04_data_collection/cache
-04_data_collection/data/bronze/*
+04_data_collection/data/bronze/osm/*
+04_data_collection/data/bronze/datatourisme/*
 04_data_collection/data/silver/*
 04_data_collection/data/gold/*
+testing_grounds

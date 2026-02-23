@@ -23,8 +23,8 @@ print(pois_gdf.head())
 
 # Step 4: Sauvegarde en GeoParquet (Bronze)
 pois_gdf = pois_gdf.to_crs("EPSG:4326")  # ensure standard WGS84 coordinates
-pois_gdf.to_parquet("data/bronze/osm_pois.geoparquet")
-print("Saved to data/bronze/osm_pois.geoparquet.")
+pois_gdf.to_parquet("data/bronze/osm/osm_pois.geoparquet")
+print("Saved to data/bronze/osm/osm_pois.geoparquet.")
 
 # Step 5: Réduction aux colonnes utiles + conversion des batîments en point unique (centroïde)
 slim_pois_gdf = pois_gdf[[
@@ -67,9 +67,9 @@ G = ox.add_edge_speeds(G)
 G = ox.add_edge_travel_times(G)
 
 # Save the graph
-ox.save_graphml(G, filepath="data/bronze/osm_road_network.graphml")
+ox.save_graphml(G, filepath="data/bronze/osm/osm_road_network.graphml")
 print(f"Graph has {len(G.nodes)} nodes and {len(G.edges)} edges")
-print("Saved to data/bronze/osm_road_network.graphml")
+print("Saved to data/bronze/osm/osm_road_network.graphml")
 
 ox.save_graphml(G, filepath="data/silver/osm_road_network.graphml")
 print(f"Graph has {len(G.nodes)} nodes and {len(G.edges)} edges")
