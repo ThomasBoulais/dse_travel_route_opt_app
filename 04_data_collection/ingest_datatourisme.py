@@ -1,5 +1,5 @@
 """
-DataTourisme - Pipeline d'ingestion Bronze → Silver
+DataTourisme - Pipeline d'ingestion Bronze => Silver
 ====================================================
 Structure du dump :
     data/bronze/datatourisme/dump/
@@ -10,7 +10,7 @@ Structure du dump :
             └── <uuid>.json # Un POI par fichier
 
 Usage :
-    python ingest_datatourisme.py
+    python3 ingest_datatourisme.py
 """
 
 import json
@@ -23,7 +23,7 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
 
-# ─────────────────────────────── CONFIG ──────────────────────────────────────
+# CONFIG
 
 DUMP_PATH = Path.cwd() / "data/bronze/datatourisme/dt_dump_gz"
 BRONZE_DIR = Path.cwd() / "data/bronze/datatourisme/dump"
@@ -38,7 +38,7 @@ OUTPUT_CSV        = SILVER_DIR / "datatourisme_pois.csv"   # debug/exploration
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
 
-# ─────────────────────────────── HELPERS ─────────────────────────────────────
+# HELPERS
 
 def get_multilang(field, lang: str = "fr") -> str | None:
     """Extrait une valeur multilingue (dict ou liste de dicts)."""
@@ -54,7 +54,7 @@ def get_multilang(field, lang: str = "fr") -> str | None:
 
 
 def extract_geo(entry: dict) -> tuple[float | None, float | None]:
-    """Extrait latitude/longitude depuis isLocatedAt → schema:geo."""
+    """Extrait latitude/longitude depuis isLocatedAt vers schema:geo."""
     for location in entry.get("isLocatedAt", []):
         geo = location.get("schema:geo", {})
         lat = geo.get("schema:latitude")
@@ -106,14 +106,14 @@ def extract_contact(entry: dict) -> dict:
 
 
 def extract_opening_hours(entry: dict) -> str | None:
-    """Extrait les périodes d'ouverture sous forme lisible (ex. '2026-06-02 → 2026-09-30')."""
+    """Extrait les périodes d'ouverture sous forme lisible (ex. '2026-06-02 => 2026-09-30')."""
     periods = []
     for location in entry.get("isLocatedAt", []):
         for spec in location.get("schema:openingHoursSpecification", []):
             start = spec.get("schema:validFrom", "")[:10]
             end   = spec.get("schema:validThrough", "")[:10]
             if start or end:
-                periods.append(f"{start} → {end}")
+                periods.append(f"{start} => {end}")
     return " | ".join(periods) if periods else None
 
 
@@ -134,7 +134,7 @@ def parse_poi(entry: dict, source_file: str) -> dict | None:
     """
     lat, lon = extract_geo(entry)
     if lat is None or lon is None:
-        return None  # POI non géolocalisé → écarté
+        return None  # les POIs non géolocalisés sont écartés
 
     name_fr = get_multilang(entry.get("rdfs:label"), "fr")
     name_en = get_multilang(entry.get("rdfs:label"), "en")
@@ -179,7 +179,7 @@ def parse_poi(entry: dict, source_file: str) -> dict | None:
     }
 
 
-# ─────────────────────────────── BRONZE ──────────────────────────────────────
+# BRONZE
 
 def get_dump() -> None:
     """Récupère les données sous format GZIP depuis https://diffuseur.datatourisme.fr."""
@@ -198,7 +198,7 @@ def extract_dump() -> None:
 
 
 def load_index() -> list[dict]:
-    """Charge index.json → liste de {label, file, lastUpdateDatatourisme}."""
+    """Charge index.json vers une liste de {label, file, lastUpdateDatatourisme}."""
     log.info(f"Lecture de l'index : {INDEX_FILE}")
     with open(INDEX_FILE, encoding="utf-8") as f:
         index = json.load(f)
@@ -236,7 +236,7 @@ def ingest_bronze(index: list[dict]) -> list[dict]:
     return raw_entries
 
 
-# ─────────────────────────────── SILVER ──────────────────────────────────────
+# SILVER
 
 def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
     """
@@ -279,7 +279,7 @@ def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
     return gdf
 
 
-# ─────────────────────────────── EXPORT ──────────────────────────────────────
+# EXPORT
 
 def export_silver(gdf: gpd.GeoDataFrame) -> None:
     """Sauvegarde en GeoParquet (Silver) et CSV optionnel."""
@@ -291,24 +291,24 @@ def export_silver(gdf: gpd.GeoDataFrame) -> None:
     log.info(f"CSV sauvegardé       : {OUTPUT_CSV}")
 
 
-# ─────────────────────────────── MAIN ────────────────────────────────────────
+# MAIN
 
 def main():
-    log.info("=== Démarrage pipeline DataTourisme Bronze → Silver ===")
+    log.info("=== Démarrage pipeline DataTourisme Bronze => Silver ===")
 
-    # ── Bronze : ajout & lecture des fichiers bruts ──────────────────────────────────
+    # Bronze : ajout & lecture des fichiers bruts
     get_dump()
     extract_dump()
     index       = load_index()
     raw_entries = ingest_bronze(index)
 
-    # ── Silver : transformation & nettoyage ──────────────────────────────────
+    # Silver : transformation & nettoyage
     gdf = transform_silver(raw_entries)
 
-    # ── Export ───────────────────────────────────────────────────────────────
+    # Export
     export_silver(gdf)
 
-    # ── Aperçu ───────────────────────────────────────────────────────────────
+    # Aperçu
     log.info("\n── Aperçu (5 premières lignes) ──")
     print(gdf[["name_fr", "types", "city", "latitude", "longitude"]].head())
 
