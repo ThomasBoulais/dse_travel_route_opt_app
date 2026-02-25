@@ -2,6 +2,7 @@
 OSM - Pipeline d'ingestion Bronze => Silver
 ====================================================
 
+
 Usage :
     python3 ingest_osm.py
 """
@@ -10,12 +11,14 @@ import osmnx as ox
 import geopandas as gpd
 import logging
 
+from travel_route_optimization.data_pipeline.utils.config import OSM_BRONZE_GEOPARQUET, OSM_BRONZE_GRAPHML, OSM_PLACE_NAME, OSM_SILVER_GEOPARQUET, OSM_SILVER_GRAPHML
+
 ox.settings.use_cache = True
 
 # CONFIG
 
 # Step 1: Définition de la zone détude
-PLACE_NAME = "Hérault, Occitanie, France"
+
 TAGS = {
     "tourism": ["museum", "attraction", "viewpoint", "hotel", "hostel"],
     "amenity": ["restaurant", "cafe", "bar"],
@@ -56,37 +59,37 @@ def print_len_col_head(pois_gdf: gpd.GeoDataFrame) -> None:
 # BRONZE
 
 def get_pois() -> gpd.GeoDataFrame:
-    """Récupère les POIs sous format GeoPandas"""
-    log.info(f"Téléchargement des POIs OSM de: {PLACE_NAME}.")
-    pois_gdf = ox.features_from_place(PLACE_NAME, tags=TAGS)
+    """Récupère les POIs sous format GeoPandas."""
+    log.info(f"Téléchargement des POIs OSM de: {OSM_PLACE_NAME}.")
+    pois_gdf = ox.features_from_place(OSM_PLACE_NAME, tags=TAGS)
     print_len_col_head(pois_gdf)
     return pois_gdf
 
 
 def get_road_networks() -> gpd.GeoDataFrame:
-    """Récupère les réseaux de routes sour format GeoPandas"""
-    log.info(f"Téléchargement du réseau de routes de: {PLACE_NAME}")
-    G = ox.graph_from_place(PLACE_NAME, network_type="drive")
+    """Récupère les réseaux de routes sour format GeoPandas."""
+    log.info(f"Téléchargement du réseau de routes de: {OSM_PLACE_NAME}")
+    G = ox.graph_from_place(OSM_PLACE_NAME, network_type="drive")
     G = ox.add_edge_speeds(G)
     G = ox.add_edge_travel_times(G)
     return G
 
 
 def ingest_bronze(pois_gdf: gpd.GeoDataFrame, G: gpd.GeoDataFrame) -> None:
-    """Sauvegarde en GeoParquet (Bronze)"""
+    """Sauvegarde en GeoParquet (Bronze)."""
     pois_gdf = pois_gdf.to_crs("EPSG:4326")  # ensure standard WGS84 coordinates
-    pois_gdf.to_parquet("data/bronze/osm/osm_pois.geoparquet")
+    pois_gdf.to_parquet(OSM_BRONZE_GEOPARQUET)
     log.info("GeoParquet des POIs bruts sauvegardés à l'endroit suivant: data/bronze/osm/osm_pois.geoparquet")
 
-    ox.save_graphml(G, filepath="data/bronze/osm/osm_road_network.graphml")
+    ox.save_graphml(G, filepath=OSM_BRONZE_GRAPHML)
     log.info(f"Le graphe a {len(G.nodes)} noeuds (nodes) et {len(G.edges)} arrêtes (edges).")
-    log.info("Graphml des réseaux de routes sauvegardés à l'endroit suivant: data/bronze/osm/osm_road_network.graphml")
+    log.info(f"Graphml des réseaux de routes sauvegardés à l'endroit suivant: {OSM_BRONZE_GRAPHML}")
 
 
 # SILVER
 
 def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Réduit aux colonnes utiles + convertit les batîments en point unique (centroïde)"""
+    """Réduit aux colonnes utiles + convertit les batîments en point unique (centroïde)."""
     log.info("Réduction aux colonnes pertinentes")
     slim_pois_gdf = pois_gdf[RELEVANT_FIELDS].copy()
     slim_pois_gdf["geometry"] = slim_pois_gdf["geometry"].apply(
@@ -99,14 +102,14 @@ def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 # EXPORT
 
 def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G: gpd.GeoDataFrame) -> None:
-    """ Sauvegarde en  GeoParquet (passage Bronze => Silver)"""
+    """ Sauvegarde en  GeoParquet (passage Bronze => Silver)."""
     slim_pois_gdf = slim_pois_gdf.to_crs("EPSG:4326")  # ensure standard WGS84 coordinates
-    slim_pois_gdf.to_parquet("data/silver/osm_pois_slim.geoparquet")
-    log.info("GeoParquet des POIs affinés sauvegardés à l'endroit suivant: data/silver/osm_pois_slim.geoparquet")
+    slim_pois_gdf.to_parquet(OSM_SILVER_GEOPARQUET)
+    log.info(f"GeoParquet des POIs affinés sauvegardés à l'endroit suivant: {OSM_SILVER_GEOPARQUET}")
 
-    ox.save_graphml(G, filepath="data/silver/osm/osm_road_network.graphml")
+    ox.save_graphml(G, filepath=OSM_SILVER_GRAPHML)
     log.info(f"Le graphe a {len(G.nodes)} noeuds (nodes) et {len(G.edges)} arrêtes (edges).")
-    log.info("Graphml des réseaux de routes sauvegardés à l'endroit suivant: data/silver/osm/osm_road_network.graphml")
+    log.info(f"Graphml des réseaux de routes sauvegardés à l'endroit suivant: {OSM_SILVER_GRAPHML}")
 
 
 # MAIN

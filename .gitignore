@@ -1,7 +1,10 @@
 .venv
-04_data_collection/cache
-04_data_collection/data/bronze/osm/*
-04_data_collection/data/bronze/datatourisme/*
-04_data_collection/data/silver/*
-04_data_collection/data/gold/*
+
+travel_route_optimization/cache
 testing_grounds
+
+travel_route_optimization/data/bronze/datatourisme/*
+travel_route_optimization/data/bronze/osm/*
+travel_route_optimization/data/silver/*
+travel_route_optimization/data/silver/osm/*
+travel_route_optimization/data/gold/*

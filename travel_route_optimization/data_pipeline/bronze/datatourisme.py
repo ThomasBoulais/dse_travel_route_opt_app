@@ -4,9 +4,9 @@ DataTourisme - Pipeline d'ingestion Bronze => Silver
 Structure du dump :
     data/bronze/datatourisme/dump/
     ├── index.json          # Catalogue : label, lastUpdateDatatourisme, file
-    ├── context.jsonld      # Contexte JSON-LD (référence)
+    ├── context.jsonld      # Contexte JSON-LD (références struct/prop./... pas clair pourquoi mais pas utile)
     └── objects/
-        └── XX/XXXX/        # Arborescence hexadécimale
+        └── XX/XXXX/        # Arborescence des fichiers avec noms de dossiersn en hexa
             └── <uuid>.json # Un POI par fichier
 
 Usage :
@@ -22,18 +22,9 @@ import zipfile
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
+from utils.config import DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE, DT_SILVER_CSV, DT_SILVER_GEOPARQUET
 
-# CONFIG
-
-DUMP_PATH = Path.cwd() / "data/bronze/datatourisme/dt_dump_gz"
-BRONZE_DIR = Path.cwd() / "data/bronze/datatourisme/dump"
-INDEX_FILE  = BRONZE_DIR / "index.json"
-
-SILVER_DIR  = Path.cwd() / "data/silver"
-SILVER_DIR.mkdir(parents=True, exist_ok=True)
-
-OUTPUT_GEOPARQUET = SILVER_DIR / "datatourisme_pois.geoparquet"
-OUTPUT_CSV        = SILVER_DIR / "datatourisme_pois.csv"   # debug/exploration
+# LOG
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
@@ -183,9 +174,8 @@ def parse_poi(entry: dict, source_file: str) -> dict | None:
 
 def get_dump() -> None:
     """Récupère les données sous format GZIP depuis https://diffuseur.datatourisme.fr."""
-    file_url = 'https://diffuseur.datatourisme.fr/webservice/e1ec2f4e53628162352a8067eb6ac3e7/071d1b42-f48c-4350-826c-e92199a99bdf'
-    r = requests.get(file_url)
-    with open(DUMP_PATH, "wb") as f:
+    r = requests.get(DT_DUMP_URL)
+    with open(DT_DUMP_PATH, "wb") as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
@@ -193,14 +183,14 @@ def get_dump() -> None:
 
 def extract_dump() -> None:
     """Extrait le dump GZIP dans le dossier Bronze"""
-    with zipfile.ZipFile(DUMP_PATH, 'r') as zObject:
-        zObject.extractall(path=BRONZE_DIR)
+    with zipfile.ZipFile(DT_DUMP_PATH, 'r') as zObject:
+        zObject.extractall(path=DT_DUMP_DIR)
 
 
 def load_index() -> list[dict]:
     """Charge index.json vers une liste de {label, file, lastUpdateDatatourisme}."""
-    log.info(f"Lecture de l'index : {INDEX_FILE}")
-    with open(INDEX_FILE, encoding="utf-8") as f:
+    log.info(f"Lecture de l'index : {DT_INDEX_FILE}")
+    with open(DT_INDEX_FILE, encoding="utf-8") as f:
         index = json.load(f)
     log.info(f"{len(index):,} entrées dans l'index.")
     return index
@@ -215,7 +205,7 @@ def ingest_bronze(index: list[dict]) -> list[dict]:
     errors = 0
 
     for item in index:
-        filepath = BRONZE_DIR / 'objects' / item["file"]
+        filepath = DT_DUMP_DIR / 'objects' / item["file"]
         if not filepath.exists():
             log.warning(f"Fichier introuvable : {filepath}")
             errors += 1
@@ -263,7 +253,7 @@ def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
 
     df = pd.DataFrame(records)
 
-    # Déduplication : garde la version la plus récente
+    # Déduplication : garde la version la plus récente de chaque POI
     df["last_update"] = pd.to_datetime(df["last_update"], errors="coerce")
     df = (df
           .sort_values("last_update", ascending=False, na_position="last")
@@ -283,12 +273,12 @@ def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
 
 def export_silver(gdf: gpd.GeoDataFrame) -> None:
     """Sauvegarde en GeoParquet (Silver) et CSV optionnel."""
-    gdf.to_parquet(OUTPUT_GEOPARQUET, index=False)
-    log.info(f"GeoParquet sauvegardé : {OUTPUT_GEOPARQUET}  ({len(gdf):,} lignes)")
+    gdf.to_parquet(DT_SILVER_GEOPARQUET, index=False)
+    log.info(f"GeoParquet sauvegardé : {DT_SILVER_GEOPARQUET}  ({len(gdf):,} lignes)")
 
     # CSV sans géométrie pour exploration rapide
-    gdf.drop(columns="geometry").to_csv(OUTPUT_CSV, index=False, encoding="utf-8-sig")
-    log.info(f"CSV sauvegardé       : {OUTPUT_CSV}")
+    gdf.drop(columns="geometry").to_csv(DT_SILVER_CSV, index=False, encoding="utf-8-sig")
+    log.info(f"CSV sauvegardé       : {DT_SILVER_CSV}")
 
 
 # MAIN
