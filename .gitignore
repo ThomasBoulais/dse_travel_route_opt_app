@@ -1,10 +1,14 @@
+# virtualenv & testing grounds
 .venv
-
-travel_route_optimization/cache
 testing_grounds
 
-travel_route_optimization/data/bronze/datatourisme/*
-travel_route_optimization/data/bronze/osm/*
-travel_route_optimization/data/silver/*
-travel_route_optimization/data/silver/osm/*
-travel_route_optimization/data/gold/*
+# cache & pycache
+cache 
+__pycache__
+
+# all the data ingested, transformed and loaded
+travel_route_optimization/data/*
+
+# setup
+travel_route_optimization.egg-info
+package.pth
