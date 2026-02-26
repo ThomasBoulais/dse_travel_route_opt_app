@@ -38,7 +38,7 @@ RELEVANT_FIELDS = [
 
 def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Réduit aux colonnes utiles + convertit les batîments en point unique (centroïde)."""
-    log.info("OSM - Réduction aux colonnes pertinentes")
+    log.info("OSM - Silver : Réduction des POIs aux colonnes pertinentes")
     slim_pois_gdf = pois_gdf[RELEVANT_FIELDS].copy()
     slim_pois_gdf["geometry"] = slim_pois_gdf["geometry"].apply(
         lambda geom: geom.centroid if geom.geom_type != "Point" else geom
@@ -51,8 +51,8 @@ def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G: gpd.GeoDataFrame) -> None:
     """ Sauvegarde en  GeoParquet (passage Bronze => Silver)."""
     slim_pois_gdf = slim_pois_gdf.to_crs("EPSG:4326")  # ensure standard WGS84 coordinates
     slim_pois_gdf.to_parquet(OSM_SILVER_GEOPARQUET)
-    log.info(f"OSM - GeoParquet des POIs affinés sauvegardés à l'endroit suivant: {OSM_SILVER_GEOPARQUET}")
+    log.info(f"OSM - Silver : GeoParquet POIs sauvegardés à {OSM_SILVER_GEOPARQUET}")
 
     ox.save_graphml(G, filepath=OSM_SILVER_GRAPHML)
-    log.info(f"OSM - Le graphe a {len(G.nodes)} noeuds (nodes) et {len(G.edges)} arrêtes (edges).")
-    log.info(f"OSM - Graphml des réseaux de routes sauvegardés à l'endroit suivant: {OSM_SILVER_GRAPHML}")
+    log.info(f"OSM - Silver : {len(G.nodes)} noeuds (nodes) et {len(G.edges)} arrêtes (edges) dans le réseau de routes.")
+    log.info(f"OSM - Silver : Graphml sauvegardés à {OSM_SILVER_GRAPHML}")
