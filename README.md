@@ -22,7 +22,11 @@ Les différentes étapes du projet sont à ce jour :
 
 2. Activer l'environnement virtuel si besoin :
     ```sh
+    # shell
     source .venv\bin\activate
+
+    # powershell
+    .venv\Scripts\activate.ps1
     ```
 
 3. Installer les librairies requises

@@ -1,8 +1,11 @@
 branca==0.8.2
 certifi==2026.1.4
 charset-normalizer==3.4.4
+cramjam==2.11.0
 duckdb==1.4.4
+fastparquet==2025.12.0
 folium==0.20.0
+fsspec==2026.2.0
 geopandas==1.1.2
 idna==3.11
 ijson==3.4.0.post0
@@ -21,11 +24,9 @@ pyogrio==0.12.1
 pyproj==3.7.2
 python-dateutil==2.9.0.post0
 requests==2.32.5
+setuptools==82.0.0
 shapely==2.1.2
 six==1.17.0
+-e git+ssh://git@github.com/ThomasBoulais/dse_travel_route_opt_app.git@9b59917ce6a68b8f345d185d2ff248ccf77d4d6c#egg=travel_route_optimization&subdirectory=travel_route_optimization
 urllib3==2.6.3
 xyzservices==2025.11.0
-
-
-# Pour traiter les scripts custom comme des modules
--e ./travel_route_optimization
