@@ -39,8 +39,22 @@ Les différentes étapes du projet sont à ce jour :
     python3 -m travel_route_optimization.data_pipeline.pipeline
     ```
 
-
 ## Todo du moment
+
+1. Enrichir les données OSM + DATATourisme dans gold 
+    11. Construire une structure commune
+    12. Fusionner les points commun
+
+11. Construire une structure commune
+- name          : nom du POI (noms vides dans OSM à investiguer)
+- geometry      : géoloc => clef approx. d'égalité entre les src
+- type          : à rationnaliser => clef approx. d'égalité entre les src
+- opening hours : gérer les vides
+- address       : pour l'export utilisateur
+- description   : 
+- (category)    : tag de référence pour les utilisateurs (culture, sport, etc.)
+
+## RoadMap
 - ~Vérifier que les geometry DATATourisme sont des points et pas des polygones~
 - ~Retaper l'archi du projet pour qu'il soit clair~
 - Faire l'enrichissement des données OSM & DATATourisme pour passer en Gold 

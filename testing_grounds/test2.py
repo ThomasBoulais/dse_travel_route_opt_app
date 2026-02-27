@@ -1,12 +1,10 @@
-# DATATOURISME
-
 import fastparquet
 import geopandas as gpd
 import pandas as pd
 from shapely import wkb
 from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET
 
-
+# DATATOURISME
 
 def convert_wkb_to_geom(wkb_bytes: bytearray) -> gpd.GeoDataFrame | None: # obligé de passer par là vu que `gpd.read_parquet()` renvoie une erreur
     """Convertit les WKB (byterarray) en shapely.geometry"""
@@ -27,7 +25,7 @@ def to_geopandas(df: pd.DataFrame) -> gpd.GeoDataFrame:
 
     return gdf
 
-# DATATOURISME
+
 def get_gdf_dt() -> gpd.GeoDataFrame:
     df_dt = fastparquet.ParquetFile(DT_SILVER_GEOPARQUET)
     df_dt = df_dt.to_pandas()

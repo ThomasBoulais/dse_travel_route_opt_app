@@ -46,7 +46,7 @@ gdf_dt = to_geopandas(df_dt)
 print(gdf_dt.shape, '\n',
       gdf_dt.notna().sum(), '\n',
       gdf_dt[['name_fr', 'geometry']].head(5),
-      gdf_dt['types'].unique())
+      gdf_dt['types'].unique()) # besoin de transformer en liste
 
 
 # OSM
