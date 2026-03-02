@@ -2,9 +2,9 @@ import fastparquet
 import geopandas as gpd
 import pandas as pd
 from shapely import wkb
-from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET, OSM_SILVER_GEOPARQUET
 
-# DATATOURISME
+# HELPERS
 
 def convert_wkb_to_geom(wkb_bytes: bytearray) -> gpd.GeoDataFrame | None: # obligé de passer par là vu que `gpd.read_parquet()` renvoie une erreur
     """Convertit les WKB (byterarray) en shapely.geometry"""
@@ -26,11 +26,32 @@ def to_geopandas(df: pd.DataFrame) -> gpd.GeoDataFrame:
     return gdf
 
 
-def get_gdf_dt() -> gpd.GeoDataFrame:
-    df_dt = fastparquet.ParquetFile(DT_SILVER_GEOPARQUET)
-    df_dt = df_dt.to_pandas()
-    gdf_dt = to_geopandas(df_dt)
+def get_gdf(geoparquet_path: str) -> gpd.GeoDataFrame:
+    df = fastparquet.ParquetFile(geoparquet_path)
+    df = df.to_pandas()
+    gdf = to_geopandas(df)
 
+    return gdf
+
+
+def describe_gdf(gdf: gpd.GeoDataFrame) -> None:
+    
+    print(gdf.shape)
+    print(gdf.columns)
+    print(gdf.notna().sum())
+    try:
+        print(gdf[['name', 'geometry']].head(5))
+    except KeyError:
+        print(gdf[['name_fr', 'geometry']].head(5))
+    try:
+        print(gdf['types'].unique()) # besoin de transformer en liste
+    except KeyError:
+        pass
+
+# DATATOURISME
+
+gdf_dt = get_gdf(DT_SILVER_GEOPARQUET)
+# describe_gdf(gdf_dt)
     # Index(['id', 'dc_identifier', 'source_file', 'name_fr', 'name_en',
     #        'description_fr', 'types', 'latitude', 'longitude', 'street',
     #        'postal_code', 'city', 'city_insee', 'dept_insee', 'email', 'phone',
@@ -38,14 +59,6 @@ def get_gdf_dt() -> gpd.GeoDataFrame:
     #        'last_update', 'language', 'geometry'],
     #       dtype='str')
 
-    print(gdf_dt.shape, '\n',
-          gdf_dt.notna().sum(), '\n',
-          gdf_dt[['name_fr', 'geometry']].head(5),
-          gdf_dt['types'].unique()) # besoin de transformer en liste
-    return gdf_dt
-
-
-gdf_dt = get_gdf_dt()
 ls_types = set()
 
 for item in gdf_dt['types'].unique():
@@ -58,3 +71,12 @@ ls_schema = [str(x) for x in ls_types if 'schema' in x]
 print(sorted(ls_schema)) 
 print('---')
 print(sorted(ls_types.difference(ls_schema)))
+print('---')
+print('---')
+
+# OSM 
+
+gdf_osm = get_gdf(OSM_SILVER_GEOPARQUET)
+describe_gdf(gdf_osm)
+
+print(gdf_osm.head(30))
