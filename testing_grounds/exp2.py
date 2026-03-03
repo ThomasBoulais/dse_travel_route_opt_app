@@ -59,24 +59,24 @@ gdf_dt = get_gdf(DT_SILVER_GEOPARQUET)
     #        'last_update', 'language', 'geometry'],
     #       dtype='str')
 
-ls_types = set()
+# ls_types = set()
 
-for item in gdf_dt['types'].unique():
-    types = item.split('|')
-    for el_types in types:
-        ls_types.add(el_types)
+# for item in gdf_dt['types'].unique():
+#     types = item.split('|')
+#     for el_types in types:
+#         ls_types.add(el_types)
 
-ls_schema = [str(x) for x in ls_types if 'schema' in x]
-# les entrées précédées de "schema:" (schema.org = convention internationale de nommage)
-print(sorted(ls_schema)) 
-print('---')
-print(sorted(ls_types.difference(ls_schema)))
-print('---')
-print('---')
+# ls_schema = [str(x) for x in ls_types if 'schema' in x]
+# # les entrées précédées de "schema:" (schema.org = convention internationale de nommage)
+# print(sorted(ls_schema)) 
+# print('---')
+# print(sorted(ls_types.difference(ls_schema)))
+# print('---')
+# print('---')
 
-# OSM 
+# # OSM 
 
-gdf_osm = get_gdf(OSM_SILVER_GEOPARQUET)
-describe_gdf(gdf_osm)
+# gdf_osm = get_gdf(OSM_SILVER_GEOPARQUET)
+# describe_gdf(gdf_osm)
 
-print(gdf_osm.head(30))
+# print(gdf_osm.head(30))

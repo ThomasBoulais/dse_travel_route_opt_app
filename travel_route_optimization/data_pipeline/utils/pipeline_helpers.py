@@ -4,6 +4,8 @@ import geopandas as gpd
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
 
+# ============= SILVER =============
+
 # OSM
 
 def print_len_col_head(pois_gdf: gpd.GeoDataFrame) -> None:
@@ -152,3 +154,9 @@ def parse_poi(entry: dict, source_file: str) -> dict | None:
         "last_update":     entry.get("lastUpdate"),
         "language":        "|".join(entry.get("availableLanguage", [])),
     }
+
+# ============= GOLD =============
+
+# OSM
+
+# DATATOURISME
