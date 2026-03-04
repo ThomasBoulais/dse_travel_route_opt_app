@@ -5,6 +5,10 @@ BRONZE_DIR  = Path(__file__).parents[2] / "data/bronze"
 SILVER_DIR  = Path(__file__).parents[2] / "data/silver"
 GOLD_DIR    = Path(__file__).parents[2] / "data/gold"
 
+GOLD_POIS_GEOPARQUET    = GOLD_DIR / "gold_pois.geoparquet"
+GOLD_POIS_CSV           = GOLD_DIR / "gold_pois.csv" # debug/exploration
+GOLD_GRAPHML            = GOLD_DIR / "road_network.graphml"
+
 OSM_PLACE_NAME              = "Hérault, Occitanie, France"
 OSM_BRONZE_DIR              = BRONZE_DIR / "osm"
 OSM_BRONZE_GEOPARQUET       = OSM_BRONZE_DIR / "osm_pois.geoparquet"
@@ -18,9 +22,9 @@ DT_DUMP_PATH            = DT_BRONZE_DIR / "dt_dump_gz"
 DT_DUMP_DIR             = DT_BRONZE_DIR / "dump"
 DT_INDEX_FILE           = DT_DUMP_DIR / "index.json"
 DT_SILVER_GEOPARQUET    = SILVER_DIR / "datatourisme_pois.geoparquet"
-DT_SILVER_CSV           = SILVER_DIR / "datatourisme_pois.csv"   # debug/exploration
+DT_SILVER_CSV           = SILVER_DIR / "datatourisme_pois.csv" # debug/exploration
 
-DT_DICT_TYPE_CAT = {
+DT_DICT_TYPES_DETAILED = {
     'LeisureComplex':           'leisure & entertainment',
     'ResidentialLeisurePark':   'leisure & entertainment',
     'BilliardRoom':             'leisure & entertainment',
@@ -199,3 +203,57 @@ DT_DICT_TYPE_CAT = {
     # 'Course':                   'other',
 }
 
+OSM_DICT_TYPES_DETAILED = {
+    'attraction':   'leisure & entertainment', 
+    'hostel':       'accomodation', 
+    'hotel':        'accomodation', 
+    'museum':       'cultural, historical & religious events or sites', 
+    # 'yes':          '', 
+    'information':  'utilitaries', 
+    'viewpoint':    'parks, garden & nature', 
+ 
+    # 'fountain':             '', 
+    'reception_desk':       'utilitaries', 
+    'arts_centre':          'cultural, historical & religious events or sites', 
+    'animal_boarding':      'sportive', 
+    'bar':                  'restauration', 
+    'planetarium':          'restauration', 
+    'restaurant':           'restauration', 
+    'cafe':                 'restauration', 
+    'place_of_worship':     'cultural, historical & religious events or sites', 
+ 
+    # 'fountain':             '', 
+    'ruins':                'cultural, historical & religious events or sites', 
+    'watermill':            'cultural, historical & religious events or sites', 
+    'city_gate':            'cultural, historical & religious events or sites', 
+    'church':               'cultural, historical & religious events or sites', 
+    'building':             'cultural, historical & religious events or sites', 
+    'wayside_cross':        'cultural, historical & religious events or sites', 
+    'archaeological_site':  'cultural, historical & religious events or sites', 
+    'tomb':                 'cultural, historical & religious events or sites', 
+    'castle':               'cultural, historical & religious events or sites', 
+    'monastery':            'cultural, historical & religious events or sites', 
+    # 'yes':                  '', 
+    'bridge':               'cultural, historical & religious events or sites', 
+ 
+    'dance': '', 
+    'nature_reserve':   'parks, garden & nature', 
+    'carousel':         'parks, garden & nature', 
+    'garden':           'parks, garden & nature', 
+    'park':             'parks, garden & nature', 
+    'sports_centre':    'sportive', 
+    'bird_hide':        'parks, garden & nature', 
+  
+    'cave_entrance':    'parks, garden & nature', 
+    'water':            'parks, garden & nature', 
+    'spring':           'parks, garden & nature', 
+    'rock':             'parks, garden & nature', 
+    'wood':             'parks, garden & nature', 
+    'cirque':           'parks, garden & nature', 
+    'bare_rock':        'parks, garden & nature', 
+    'sand':             'parks, garden & nature', 
+    'gorge':            'parks, garden & nature', 
+    'grassland':        'parks, garden & nature', 
+    'sinkhole':         'parks, garden & nature', 
+    'peak':             'parks, garden & nature', 
+}

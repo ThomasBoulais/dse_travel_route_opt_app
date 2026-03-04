@@ -48,7 +48,7 @@ def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G: gpd.GeoDataFrame) -> None:
-    """ Sauvegarde en  GeoParquet (passage Bronze => Silver)."""
+    """ Sauvegarde en  GeoParquet & Graphml (passage Bronze => Silver)."""
     slim_pois_gdf = slim_pois_gdf.to_crs("EPSG:4326")  # ensure standard WGS84 coordinates
     slim_pois_gdf.to_parquet(OSM_SILVER_GEOPARQUET)
     log.info(f"OSM - Silver : GeoParquet POIs sauvegardés à {OSM_SILVER_GEOPARQUET}")

@@ -34,10 +34,12 @@ Les différentes étapes du projet sont à ce jour :
     pip3 install -r requirements.txt
     ```
 
-4. Lancer la pipeline 
+4. Lancer la pipeline pour récupérer les données
     ```sh
     python3 -m travel_route_optimization.data_pipeline.pipeline
     ```
+
+5. Renseigner les inputs dans XXX et lancer le script d'optimisation
 
 ## Todo du moment
 
@@ -46,18 +48,18 @@ Les différentes étapes du projet sont à ce jour :
     12. Fusionner les points commun
 
 11. Construire une structure commune
-- name          : nom du POI (noms vides dans OSM à investiguer)
-- geometry      : géoloc => clef approx. d'égalité entre les src
-- type          : à rationnaliser => clef approx. d'égalité entre les src
-- opening hours : gérer les vides
-- address       : pour l'export utilisateur
-- description   : 
-- (category)    : tag de référence pour les utilisateurs (culture, sport, etc.)
+- name                  : nom du POI (noms vides dans OSM à investiguer)
+- geometry              : géoloc => clef approx. d'égalité entre les src
+- category              : tag de référence pour les utilisateurs (culture, sport, etc.)
+- type                  : à rationnaliser => clef approx. d'égalité entre les src
+- opening hours         : gérer les vides
+- address               : pour l'export utilisateur
+- email, phone, website : 
 
 ## RoadMap
 - ~Vérifier que les geometry DATATourisme sont des points et pas des polygones~
 - ~Retaper l'archi du projet pour qu'il soit clair~
-- Faire l'enrichissement des données OSM & DATATourisme pour passer en Gold 
+- ~Faire l'enrichissement des données OSM & DATATourisme pour passer en Gold~
 - Intégrer la logique de création de route (Algorithme de Dijkstra, TDTOPTW, peut-être démarrer par un TSP ou OP pour roter du sang direct)
 - Ajouter une brique ML (piste de chercher statistiquement le prochain noeud qui a le plus de sens dans itinéraire en cours de construction)
 - Découvrir Streamlit

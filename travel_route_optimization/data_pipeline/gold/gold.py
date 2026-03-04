@@ -1,64 +1,120 @@
+"""
+Datatourisme & OSM - Transformation Silver => Gold
+"""
 
-# l'objectif est de fusionner les points qui sont similaires
-# 1. récupérer la structure des 2 
-
-import geopandas as gpd
 import fastparquet
 import pandas as pd
-from shapely import wkb
-
-from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET, OSM_SILVER_GEOPARQUET
-
-
-def convert_wkb_to_geom(wkb_bytes: bytearray) -> gpd.GeoDataFrame | None: # obligé de passer par là vu que `gpd.read_parquet()` renvoie une erreur
-    """Convertit les WKB (byterarray) en shapely.geometry"""
-    try:
-        return wkb.loads(wkb_bytes)
-    except Exception as e:
-        return None
+import geopandas as gpd
+import logging
+import osmnx as ox
+from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
-def to_geopandas(df: pd.DataFrame) -> gpd.GeoDataFrame: 
-    """
-    Récupère la géométrie d'un DataFrame.
-    Renvoie un GeoDataFrame.
-    """
-    df['geometry'] = df['geometry'].apply(convert_wkb_to_geom)
-    df = df[df['geometry'].notnull()]
-    gdf = gpd.GeoDataFrame(df, geometry='geometry')
-
-    return gdf
+from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET, GOLD_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.pipeline_helpers import dt_add_category, osm_add_category, to_geopandas
 
 
-# DATATOURISME
-
-df_dt = fastparquet.ParquetFile(DT_SILVER_GEOPARQUET)
-df_dt = df_dt.to_pandas()
-gdf_dt = to_geopandas(df_dt)
-
-# Index(['id', 'dc_identifier', 'source_file', 'name_fr', 'name_en',
-#        'description_fr', 'types', 'latitude', 'longitude', 'street',
-#        'postal_code', 'city', 'city_insee', 'dept_insee', 'email', 'phone',
-#        'website', 'opening_hours', 'allowed_persons', 'creation_date',
-#        'last_update', 'language', 'geometry'],
-#       dtype='str')
-
-print(gdf_dt.shape, '\n',
-      gdf_dt.notna().sum(), '\n',
-      gdf_dt[['name_fr', 'geometry']].head(5),
-      gdf_dt['types'].unique()) # besoin de transformer en liste
+logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
+log = logging.getLogger(__name__)
 
 
 # OSM
 
-df_osm = fastparquet.ParquetFile(OSM_SILVER_GEOPARQUET)
-df_osm = df_osm.to_pandas()
-gdf_osm = to_geopandas(df_osm)
+def osm_transform_gold():
+    """
+    Prépare OSM Silver pour le merge final
+    - standardise les colonnes
+    - supprime les noms de POIs vides
+    - fixe le CRS (Coordinate Reference System)
+    """
+    osm_df = fastparquet.ParquetFile(OSM_SILVER_GEOPARQUET).to_pandas()
+    osm_gdf = to_geopandas(osm_df)
+    osm_gdf = osm_add_category(osm_gdf)
+    osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours']]
+    osm_gdf.set_crs("EPSG:2154", inplace=True)
+    return osm_gdf
 
-# Index(['geometry', 'name', 'tourism', 'amenity', 'historic', 'leisure',
-#        'natural', 'opening_hours', 'website', 'phone', 'addr:city',
-#        'addr:postcode', 'wheelchair', 'stars', 'wikidata'],
 
-print(gdf_osm.shape, '\n',
-      gdf_osm.notna().sum(), '\n',
-      gdf_osm[['name', 'geometry']].head(5))
+# DATATOURISME
+
+def dt_transform_gold():
+    """
+    Prépare DT Silver pour le merge final
+    - standardise les colonnes
+    - supprime les noms de POIs vides
+    - fixe le CRS (Coordinate Reference System)
+    """
+    dt_df = fastparquet.ParquetFile(DT_SILVER_GEOPARQUET).to_pandas()
+    dt_gdf = to_geopandas(dt_df)
+    dt_gdf = dt_add_category(dt_gdf)
+    dt_gdf['name'] = dt_gdf['name_fr'].apply(lambda x: str(x[0].title()))
+    dt_gdf = dt_gdf.rename({'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours']]
+    dt_gdf.set_crs("EPSG:2154", inplace=True)
+    return dt_gdf
+
+
+# MERGE
+
+def get_id_equivalent(dt_row: gpd.GeoSeries, osm_m: gpd.GeoDataFrame) -> int|None:
+    """Renvoie l'index OSM du POI équivalent côté DATATourisme"""
+
+    # 1. on veut filtrer sur les résultats proches (~20m) et garder tous les candidats,
+    delta  = .0002 # .0001 => 11.132 m (https://www.tuto-carto.fr/longitude-latitude-precision/)
+    osm_nearest = osm_m.cx[dt_row['geometry'].x - delta : dt_row['geometry'].x + delta, 
+                           dt_row['geometry'].y - delta : dt_row['geometry'].y + delta]
+    # print('\ndt_row\n', dt_row[['name', 'geometry']])
+    # print('\nosm_nearest\n', osm_nearest[['name', 'geometry']].head())
+
+    # 2. puis déterminer un score de ressemblance des noms sur les candidats restants
+    osm_nearest['lev_score'] = osm_nearest['name'].apply(
+        lambda x: fuzz.partial_ratio(str(x), str(dt_row['name']), processor=utils.default_process)
+        )
+    # print(osm_nearest[['name', 'geometry', 'lev_score']])
+
+    # 3. et enfin renvoyer une valeur si lev_score > 75%
+    try:
+        return osm_nearest[osm_nearest['lev_score'] > 75].head(1).index[0][1]
+    except IndexError:
+        return None
+
+
+def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Fusionne les 2 sources de données"""
+    dt_m = dt_gdf.to_crs("EPSG:2154") # EPSG:2154 => projection métrique française officielle
+    osm_m = osm_gdf.to_crs("EPSG:2154")
+
+    dt_m['osm_match_id'] = dt_m.apply(get_id_equivalent, args=(osm_m,), axis=1)
+    print(dt_m.notnull().sum())
+
+    # split en 3 chunk : inter, DT uniq. et OSM uniq.
+    # inter déjà fait       => dt_m['osm_match_id'].notnull()
+    # DT uniq. déjà fait    => dt_m['osm_match_id'].isnull()
+    # OSM uniq. à faire     => restriction sur la liste des osm_match_id 
+
+    dt_uniq = dt_m[dt_m['osm_match_id'].isnull()]
+    dt_osm = dt_m[dt_m['osm_match_id'].notnull()]
+    
+    osm_match_id = list(map(int, dt_m.get('osm_match_id').dropna().tolist()))
+    osm_uniq = osm_m.reset_index()[(osm_m.reset_index()['name'].notnull()) & (~osm_m.reset_index()['id'].isin(osm_match_id))]
+    
+    gold_gdf = pd.concat([dt_osm, dt_uniq, osm_uniq])[['name', 'geometry', 'categories', 'types', 'email', 'phone', 
+                                                    'website', 'opening_hours']]
+    
+    log.info(f"MERGE - Gold : {gold_gdf.shape[0]} POIs récupérés après fusion,"
+             f"après fusion entre {dt_uniq.shape[0]} POIs DATATourisme et {osm_uniq.shape[0]} POIs OSM ({dt_osm.shape[0]} POIs en commun)")
+    
+    return gold_gdf
+
+
+def export_gold(gold_gdf: gpd.GeoDataFrame, G: gpd.GeoDataFrame) -> None:
+    """Sauvegarde en GeoParquet (Gold) et CSV optionnel."""
+    gold_gdf.to_parquet(GOLD_POIS_GEOPARQUET, index=False)
+    log.info(f"GOLD - GeoParquet sauvegardé : {GOLD_POIS_GEOPARQUET}  ({len(gold_gdf):,} lignes)")
+
+    # CSV sans géométrie pour exploration rapide
+    gold_gdf.drop(columns="geometry").to_csv(GOLD_POIS_CSV, index=False, encoding="utf-8-sig")
+    log.info(f"GOLD - CSV sauvegardé       : {GOLD_POIS_CSV}")
+
+    ox.save_graphml(G, filepath=GOLD_GRAPHML)
+    log.info(f"GOLD - {len(G.nodes)} noeuds (nodes) et {len(G.edges)} arrêtes (edges) dans le réseau de routes.")
+    log.info(f"GOLD - Graphml sauvegardés à {GOLD_GRAPHML}")

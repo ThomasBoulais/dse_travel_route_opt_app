@@ -31,31 +31,42 @@ from shapely.geometry import Polygon, LineString, Point
 # print(gdf.head(2))
 
 
-import geopandas as gpd
-import fastparquet
-from shapely import wkb
+# import geopandas as gpd
+# import fastparquet
+# from shapely import wkb
 
-# Load the Parquet file using fastparquet
-df = fastparquet.ParquetFile('04_data_collection/data/silver/datatourisme_pois.geoparquet')
-df = df.to_pandas()
+# # Load the Parquet file using fastparquet
+# df = fastparquet.ParquetFile('04_data_collection/data/silver/datatourisme_pois.geoparquet')
+# df = df.to_pandas()
 
-# Convert WKB (bytearray) into Shapely geometries
-def convert_wkb_to_geom(wkb_bytes):
-    try:
-        return wkb.loads(wkb_bytes)
-    except Exception as e:
-        return None  # Return None for invalid geometries
+# # Convert WKB (bytearray) into Shapely geometries
+# def convert_wkb_to_geom(wkb_bytes):
+#     try:
+#         return wkb.loads(wkb_bytes)
+#     except Exception as e:
+#         return None  # Return None for invalid geometries
 
-# Apply the function to the 'geometry' column (assuming the 'geometry' column contains bytearray)
-df['geometry'] = df['geometry'].apply(convert_wkb_to_geom)
+# # Apply the function to the 'geometry' column (assuming the 'geometry' column contains bytearray)
+# df['geometry'] = df['geometry'].apply(convert_wkb_to_geom)
 
-# Remove rows with invalid geometries (None)
-df = df[df['geometry'].notnull()]
+# # Remove rows with invalid geometries (None)
+# df = df[df['geometry'].notnull()]
 
-# Convert the DataFrame to GeoDataFrame
-gdf = gpd.GeoDataFrame(df, geometry='geometry')
+# # Convert the DataFrame to GeoDataFrame
+# gdf = gpd.GeoDataFrame(df, geometry='geometry')
 
-# Now you can use the GeoDataFrame
-print(gdf.columns)
-print(gdf[['name_fr', 'geometry']].head(20))
-# print(gdf[gdf['geometry'].geom_type != "Point"])
+# # Now you can use the GeoDataFrame
+# print(gdf.columns)
+# print(gdf[['name_fr', 'geometry']].head(20))
+# # print(gdf[gdf['geometry'].geom_type != "Point"])
+
+df = pd.DataFrame(
+    columns=['name', 'longitude', 'latitude'],
+    data=[['eiffel',4, 2],
+          ['kebab', 5, 5]], 
+    )
+
+print(df.loc[0,'latitude'])
+
+print(8647+4437)
+print(8647+3628)

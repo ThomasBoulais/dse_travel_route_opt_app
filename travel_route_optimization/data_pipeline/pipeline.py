@@ -4,6 +4,8 @@ from pathlib import Path
 import logging
 import sys
 
+import travel_route_optimization.data_pipeline.gold.gold as gold
+
 # sys.path.append(f"{Path(__file__).parents[1] / "utils"}")
 sys.path.append(f"{Path(__file__).parents[1] / "data_pipeline"}")
 
@@ -41,7 +43,7 @@ def main():
     osm_silver.export_silver(slim_pois_gdf, G)
 
     # Aperçu
-    log.info("OSM - Pipeline terminé")
+    log.info("OSM - Fin pipeline Bronze => Silver")
 
 
     # === DATATOURISME ===
@@ -59,21 +61,30 @@ def main():
     # Export
     dt_silver.export_silver(gdf)
 
-    # Aperçu
-    log.info("\nDATATOURSIME - Aperçu (5 premières lignes)")
-    print(gdf[["name_fr", "types", "city", "latitude", "longitude"]].head())
+    # # Aperçu
+    # log.info("\nDATATOURSIME - Aperçu (5 premières lignes)\n\n", gdf[["name_fr", "types", "city", "latitude", "longitude"]].head())
 
-    log.info("\nDATATOURSIME - Répartition par type (top 10)")
-    type_counts = (
-        gdf["types"]
-        .str.split("|")
-        .explode()
-        .value_counts()
-        .head(10)
-    )
-    print(type_counts.to_string())
+    # log.info("\nDATATOURSIME - Répartition par type (top 10)")
+    # type_counts = (
+    #     gdf["types"]
+    #     .str.split("|")
+    #     .explode()
+    #     .value_counts()
+    #     .head(10)
+    # )
+    # print(type_counts.to_string())
 
-    log.info("DATATOURSIME - Pipeline terminé")
+    log.info("DATATOURSIME - Fin pipeline Bronze => Silver")
+
+
+    # === MERGE ===
+    log.info("\MERGE - Démarrage du pipeline Silver => Gold")
+
+    dt_gdf      = gold.dt_transform_gold()
+    osm_gdf     = gold.osm_transform_gold()
+    gold_gdf    = gold.merge_gold(dt_gdf, osm_gdf)
+    
+    gold.export_gold(gold_gdf, G)
 
 
 if __name__ == "__main__":

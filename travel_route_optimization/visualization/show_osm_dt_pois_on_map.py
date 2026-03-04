@@ -89,5 +89,5 @@ dt_layer.add_to(m)
 folium.LayerControl().add_to(m)
 
 # Save and open in browser
-m.save("map_osm_dt_pois.html")
-print("Saved map_osm_dt_pois.html — open it in your browser!")
+m.save("visualization\map_osm_dt_pois.html")
+print("Saved visualization\map_osm_dt_pois.html — open it in your browser!")

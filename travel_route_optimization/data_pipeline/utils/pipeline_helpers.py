@@ -1,5 +1,10 @@
 import logging
+import fastparquet
 import geopandas as gpd
+import pandas as pd
+from shapely import wkb
+
+from travel_route_optimization.data_pipeline.utils.config import DT_DICT_TYPES_DETAILED, DT_SILVER_GEOPARQUET, OSM_DICT_TYPES_DETAILED, OSM_SILVER_GEOPARQUET
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
@@ -157,6 +162,66 @@ def parse_poi(entry: dict, source_file: str) -> dict | None:
 
 # ============= GOLD =============
 
+# HELPERS
+
+def convert_wkb_to_geom(wkb_bytes: bytearray) -> gpd.GeoDataFrame | None: # obligé de passer par là vu que `gpd.read_parquet()` renvoie une erreur
+    """Convertit les WKB (byterarray) en shapely.geometry"""
+    try:
+        return wkb.loads(wkb_bytes)
+    except Exception as e:
+        return None
+
+
+def to_geopandas(df: pd.DataFrame) -> gpd.GeoDataFrame: 
+    """
+    Récupère la géométrie d'un DataFrame.
+    Renvoie un GeoDataFrame.
+    """
+    df['geometry'] = df['geometry'].apply(convert_wkb_to_geom)
+    df = df[df['geometry'].notnull()]
+    gdf = gpd.GeoDataFrame(df, geometry='geometry')
+
+    return gdf
+
+
 # OSM
 
+def osm_get_types(tourism: str|None, amenity: str|None, historic: str|None, leisure: str|None, natural: str|None) -> str|None:
+    """Affecte les types correspondants aux POIs (OSM)"""
+    set_types = set()
+    set_types.add(tourism)
+    set_types.add(amenity)
+    set_types.add(historic)
+    set_types.add(leisure)
+    set_types.add(natural)
+    set_types.remove(None)
+    return "|".join(map(str, list(set_types)))
+
+
+def osm_add_category(osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Affecte les catégories correspondantes aux types des POIs (OSM)"""
+    osm_gdf['types'] = osm_gdf.apply(lambda x: osm_get_types(x.tourism, x.amenity, x.historic, x.leisure, x.natural), axis=1)
+    osm_gdf['categories'] = osm_gdf['types'].apply(summarize_types, args=(OSM_DICT_TYPES_DETAILED,))
+    log.info("OSM - Gold : Catégories ajoutées aux POIs")
+    return osm_gdf
+
+
 # DATATOURISME
+
+def summarize_types(types: str, dict_types_detailed: dict) -> str:
+    """Ajoute les catégoires à une chaîne de caractères des types"""
+    set_cat = set()
+    for item in types.split('|'):
+        try:
+            set_cat.add(dict_types_detailed[item])
+        except KeyError:
+            pass
+    return "|".join(map(str, list(set_cat)))
+
+
+def dt_add_category(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Affecte les catégories correspondantes aux types des POIs (DATATourisme)"""
+    dt_gdf['categories'] = dt_gdf['types'].apply(summarize_types, args=(DT_DICT_TYPES_DETAILED,))
+    log.info("DATATOURISME - Gold : Catégories ajoutées aux POIs")
+    return dt_gdf
+
