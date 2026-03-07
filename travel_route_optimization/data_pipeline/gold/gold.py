@@ -87,9 +87,9 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
     print(dt_m.notnull().sum())
 
     # split en 3 chunk : inter, DT uniq. et OSM uniq.
-    # inter déjà fait       => dt_m['osm_match_id'].notnull()
-    # DT uniq. déjà fait    => dt_m['osm_match_id'].isnull()
-    # OSM uniq. à faire     => restriction sur la liste des osm_match_id 
+    # inter         => dt_m['osm_match_id'].notnull()
+    # DT uniq.      => dt_m['osm_match_id'].isnull()
+    # OSM uniq.     => restriction sur la liste des osm_match_id 
 
     dt_uniq = dt_m[dt_m['osm_match_id'].isnull()]
     dt_osm = dt_m[dt_m['osm_match_id'].notnull()]
