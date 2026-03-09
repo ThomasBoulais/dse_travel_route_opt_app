@@ -1,6 +1,8 @@
 import geopandas as gpd
 import folium
 
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS
+
 # Load your slim POI GeoParquet
 pois = gpd.read_parquet("data/silver/osm_pois_slim.geoparquet")
 

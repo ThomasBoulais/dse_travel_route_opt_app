@@ -7,7 +7,6 @@ import geopandas as gpd
 import logging
 
 from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, OSM_SILVER_GEOPARQUET, SILVER_DRIVE_GRAPHML, SILVER_WALK_GRAPHML
-from travel_route_optimization.data_pipeline.utils.pipeline_helpers import print_len_col_head
 
 ox.settings.use_cache = True
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -43,7 +42,7 @@ def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     slim_pois_gdf["geometry"] = slim_pois_gdf["geometry"].apply(
         lambda geom: geom.centroid if geom.geom_type != "Point" else geom
     )
-    print_len_col_head(slim_pois_gdf)
+    log.info(f"Source => Bronze (OSM) : POIs récupérés: {len(slim_pois_gdf)} avec {len(slim_pois_gdf.columns.to_list())} colonnes.")
     return slim_pois_gdf
 
 

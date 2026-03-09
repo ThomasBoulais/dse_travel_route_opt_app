@@ -2,16 +2,13 @@
 Bronze => Silver (DATATOURISME) : Transformation Bronze => Silver
 """
 
-import json
 import logging
-import requests
-import zipfile
 
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
 from travel_route_optimization.data_pipeline.utils.pipeline_helpers import parse_poi
-from utils.config import DEFAULT_CRS, DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE, DT_SILVER_CSV, DT_SILVER_GEOPARQUET
+from utils.config import DEFAULT_CRS, DT_SILVER_CSV, DT_SILVER_GEOPARQUET
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")

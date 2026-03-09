@@ -1,6 +1,9 @@
 import logging
+import re
+import unicodedata
 import fastparquet
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 from shapely import wkb
 
@@ -10,15 +13,6 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
 
 # ============= SILVER =============
-
-# OSM
-
-def print_len_col_head(pois_gdf: gpd.GeoDataFrame) -> None:
-    log.info(f"POIs récupérés: {len(pois_gdf)} avec {len(pois_gdf.columns.to_list())} colonnes.")
-    if len(pois_gdf.columns.to_list()) < 20:
-        log.info(pois_gdf.columns.tolist())
-    log.info(pois_gdf.head())
-
 
 # DATATOURISME
 
@@ -206,6 +200,120 @@ def osm_add_category(osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return osm_gdf
 
 
+DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+INT_TYPE = np.uint8
+
+def clean_hours(text):
+    """Prépare les opening_hours pour le parsing"""
+    if not text:
+        return ""
+    text = unicodedata.normalize("NFKD", str(text))
+    text = re.sub(r"[‐‑‒–—−]", "-", text)                     # dashes
+    text = re.sub(r"[\u00A0\u2000-\u200B\u202F\u205F\u3000]", " ", text)  # spaces
+    text = re.sub(r"\s+", " ", text)
+    text = text.replace("H", ":").replace("h", ":")
+    return text.strip()
+
+
+def detect_special_cases(text):
+    """Détecte les cas spéciaux (closed & 24/7)"""
+    t = text.lower()
+    if "closed" in t or "fermé" in t:
+        return "closed"
+    if "24/7" in t or "24h/24" in t:
+        return "24_7"
+    return None
+
+def parse_osm_hours(text):
+    """Récupère les horaires par jour depuis opening_hours"""
+    results = []
+    for seg in text.split(";"):
+        m = re.match(r"([A-Za-z]{2})(?:-([A-Za-z]{2}))?\s+(.*)", seg.strip())
+        if not m:
+            continue
+
+        d1, d2, hours = m.groups()
+        if d1 not in DAYS:
+            continue
+        days = DAYS[DAYS.index(d1):DAYS.index(d2)+1] if d2 in DAYS else [d1]
+
+        for h in hours.split(","):
+            parts = h.strip().split("-", 1)
+            if len(parts) != 2:
+                continue
+
+            start = re.sub(r"[^0-9:]", "", parts[0])
+            end   = re.sub(r"[^0-9:]", "", parts[1])
+
+            if re.match(r"^\d{1,2}:\d{2}$", start) and re.match(r"^\d{1,2}:\d{2}$", end):
+                for d in days:
+                    results.append({"day": d, "start": start, "end": end})
+
+    return results
+
+
+def to_minutes(hhmm):
+    """Transforme une durée hh:mm en durée en minutes"""
+    try:
+        h, m = map(int, hhmm.split(":"))
+        return h * 60 + m
+    except:
+        return None
+
+def build_open_mask(parsed):
+    """Construit un masque de minutes d'ouverture chaque jour (1 = ouvert, 0 = fermé)"""
+    mask = np.zeros((7, 1440), dtype=INT_TYPE)
+    for entry in parsed:
+        d = DAYS.index(entry["day"])
+        start = to_minutes(entry["start"])
+        end   = to_minutes(entry["end"])
+
+        if start is None or end is None:
+            continue
+        if start < end:
+            mask[d, start:end] = 1
+        else : # dépassement à J+1
+            mask[d, start:1440] = 1
+            mask[(d+1) % 7, 0:end] = 1
+    return mask
+
+
+HORAIRE_GENERIQUE = build_open_mask(
+    [{'day': 'Mo', 'start': '08:00', 'end': '12:00'}, {'day': 'Mo', 'start': '14:00', 'end': '18:00'},
+     {'day': 'Tu', 'start': '08:00', 'end': '12:00'}, {'day': 'Tu', 'start': '14:00', 'end': '18:00'},
+     {'day': 'We', 'start': '08:00', 'end': '12:00'}, {'day': 'We', 'start': '14:00', 'end': '18:00'},
+     {'day': 'Th', 'start': '08:00', 'end': '12:00'}, {'day': 'Th', 'start': '14:00', 'end': '18:00'},
+     {'day': 'Fr', 'start': '08:00', 'end': '12:00'}, {'day': 'Fr', 'start': '14:00', 'end': '18:00'},
+     {'day': 'Sa', 'start': '08:00', 'end': '12:00'}, {'day': 'Sa', 'start': '14:00', 'end': '18:00'},]
+)
+
+
+def opening_hours_to_mask(raw):
+    text = clean_hours(raw)
+    special = detect_special_cases(text)
+
+    # print(f"{text} - {special}")
+
+    if special == "closed":
+        return np.zeros((7, 1440), dtype=INT_TYPE)
+    if special == "24_7":
+        return np.ones((7, 1440), dtype=INT_TYPE)
+
+    parsed = parse_osm_hours(text)
+    # pprint(f"PARSED - {parsed}")
+    if not parsed:
+        return HORAIRE_GENERIQUE
+
+    return build_open_mask(parsed)
+
+
+def osm_add_open_hour_mask(osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Affecte un masque d'horaires d'ouverture"""
+    osm_gdf["opening_mask"] = osm_gdf["opening_hours"].apply(opening_hours_to_mask)
+    log.info("Silver => Gold (OSM) : Opening mask ajoutées aux POIs")
+    return osm_gdf
+
+
 # DATATOURISME
 
 def summarize_types(types: str, dict_types_detailed: dict) -> str:
@@ -225,3 +333,9 @@ def dt_add_category(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     log.info("Silver => Gold (DATATOURISME) : Catégories ajoutées aux POIs")
     return dt_gdf
 
+
+def dt_add_open_hour_mask(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Affecte un masque d'horaires d'ouverture (vu le format en date et non horaire, toutes les horaires sont fixés en générique)"""
+    dt_gdf["opening_mask"] = dt_gdf.apply(lambda _ : HORAIRE_GENERIQUE, axis=1)
+    log.info("Silver => Gold (DATATOURISME) : Opening mask ajoutées aux POIs")
+    return dt_gdf

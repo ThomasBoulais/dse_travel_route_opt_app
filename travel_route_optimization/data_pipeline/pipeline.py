@@ -59,7 +59,7 @@ def main():
     log.info("Bronze => Silver (DATATOURISME) : Fin pipeline")
     
 
-    log.info("=== Bronze => Silver (transformation & nettoyage) ==============================")
+    log.info("=== Silver => Gold (transformation finale pour utilisation) ====================")
     
     log.info("Silver => Gold (MERGE) : Démarrage du pipeline ")
     dt_gdf      = gold.dt_transform_gold()

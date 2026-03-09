@@ -3,6 +3,7 @@ Datatourisme & OSM - Transformation Silver => Gold
 """
 
 import fastparquet
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 import logging
@@ -11,7 +12,7 @@ from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
 from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, GOLD_WALK_GRAPHML, OSM_SILVER_GEOPARQUET
-from travel_route_optimization.data_pipeline.utils.pipeline_helpers import dt_add_category, osm_add_category, to_geopandas
+from travel_route_optimization.data_pipeline.utils.pipeline_helpers import dt_add_category, dt_add_open_hour_mask, osm_add_category, osm_add_open_hour_mask, to_geopandas
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -25,12 +26,14 @@ def osm_transform_gold():
     Prépare OSM Silver pour le merge final
     - standardise les colonnes
     - supprime les noms de POIs vides
+    - ajoute les catégories & le masque d'horaires d'ouverture
     - fixe le CRS (Coordinate Reference System)
     """
     osm_df = fastparquet.ParquetFile(OSM_SILVER_GEOPARQUET).to_pandas()
     osm_gdf = to_geopandas(osm_df)
     osm_gdf = osm_add_category(osm_gdf)
-    osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours']]
+    osm_gdf = osm_add_open_hour_mask(osm_gdf)
+    osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours', 'opening_mask']]
     osm_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return osm_gdf
 
@@ -42,13 +45,15 @@ def dt_transform_gold():
     Prépare DT Silver pour le merge final
     - standardise les colonnes
     - supprime les noms de POIs vides
+    - ajoute les catégories & le masque d'horaires d'ouverture
     - fixe le CRS (Coordinate Reference System)
     """
     dt_df = fastparquet.ParquetFile(DT_SILVER_GEOPARQUET).to_pandas()
     dt_gdf = to_geopandas(dt_df)
     dt_gdf = dt_add_category(dt_gdf)
+    dt_gdf = dt_add_open_hour_mask(dt_gdf)
     dt_gdf['name'] = dt_gdf['name_fr'].apply(lambda x: str(x[0].title()))
-    dt_gdf = dt_gdf.rename({'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours']]
+    dt_gdf = dt_gdf.rename({'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours', 'opening_mask']]
     dt_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return dt_gdf
 
@@ -84,7 +89,7 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
     osm_m = osm_gdf.to_crs(DEFAULT_CRS)
 
     dt_m['osm_match_id'] = dt_m.apply(get_id_equivalent, args=(osm_m,), axis=1)
-    print(dt_m.notnull().sum())
+    # print(dt_m.notnull().sum())
 
     # split en 3 chunk : inter, DT uniq. et OSM uniq.
     # inter         => dt_m['osm_match_id'].notnull()
@@ -94,16 +99,30 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
     dt_uniq = dt_m[dt_m['osm_match_id'].isnull()]
     dt_osm = dt_m[dt_m['osm_match_id'].notnull()]
     
+    # besoin de rajouter les horaires de OSM car ils sont mieux que DT
+    dt_osm = dt_osm.drop(['opening_hours', 'opening_mask'], axis=1)\
+        .join(osm_gdf.reset_index().rename({'id':'osm_match_id'}), on='osm_match_id',rsuffix='_osm')\
+        .rename({'opening_hours_osm':'opening_hours', 'opening_mask_osm': 'opening_mask'})
+
     osm_match_id = list(map(int, dt_m.get('osm_match_id').dropna().tolist()))
     osm_uniq = osm_m.reset_index()[(osm_m.reset_index()['name'].notnull()) & (~osm_m.reset_index()['id'].isin(osm_match_id))]
     
     gold_gdf = pd.concat([dt_osm, dt_uniq, osm_uniq])[['name', 'geometry', 'categories', 'types', 'email', 'phone', 
-                                                    'website', 'opening_hours']]
+                                                    'website', 'opening_hours', 'opening_mask']]
     
-    log.info(f"MERGE - Gold : {gold_gdf.shape[0]} POIs récupérés après fusion,"
+    log.info(f"Silver => Gold (MERGE) : {gold_gdf.shape[0]} POIs récupérés après fusion,"
              f"après fusion entre {dt_uniq.shape[0]} POIs DATATourisme et {osm_uniq.shape[0]} POIs OSM ({dt_osm.shape[0]} POIs en commun)")
     
     return gold_gdf
+
+
+# EXPORT
+
+def flatten_mask(x):
+    """Applatit le mask (7, 1440) en (10080,)"""
+    if not isinstance(x, np.ndarray):
+        x = np.zeros((7, 1440), dtype=np.uint8)
+    return x.flatten().tolist()
 
 
 def export_gold(gold_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: gpd.GeoDataFrame) -> None:
@@ -111,6 +130,10 @@ def export_gold(gold_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: g
     if gold_gdf.crs is None:
         gold_gdf = gold_gdf.set_crs(DEFAULT_CRS)
     gold_gdf = gold_gdf.to_crs(DEFAULT_CRS)
+
+    gold_gdf["opening_mask_flat"] = gold_gdf["opening_mask"].apply(flatten_mask)
+    gold_gdf = gold_gdf.drop(columns=["opening_mask"])
+    # pour pouvoir le reconstruire => mask = np.array(flat).reshape(7, 1440)
 
     gold_gdf.to_parquet(GOLD_POIS_GEOPARQUET, index=False)
     log.info(f"Silver => Gold (MERGE) : GeoParquet sauvegardé : {GOLD_POIS_GEOPARQUET}  ({len(gold_gdf):,} lignes)")

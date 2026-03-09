@@ -12,24 +12,28 @@ from sklearn.neighbors import BallTree
 from travel_route_optimization.data_pipeline.utils.config import (
     GOLD_DRIVE_GRAPHML,
     GOLD_POIS_GEOPARQUET,
+    BBOX_LEFT,
+    BBOX_BOTTOM,
+    BBOX_RIGHT,
+    BBOX_TOP
 )
+
+def set_boundaries(
+        left:    float=BBOX_LEFT,
+        bottom:  float=BBOX_BOTTOM, 
+        right:   float=BBOX_RIGHT, 
+        top:     float=BBOX_TOP
+        ) -> list[float]:
+    return left, bottom, right, top
 
 # -----------------------------
 # 1. Charger le graphe en WGS84 et TRONQUER AVANT projection
 # -----------------------------
-left    = 3.10
-bottom  = 43.55
-right   = 3.22
-top     = 43.67
 
-# left    = 0
-# bottom  = 0
-# right   = 100
-# top     = 100
+left, bottom, right, top = set_boundaries()
 
 ox.settings.default_crs = "EPSG:4326"
 
-# Charger graphe voiture (WGS84)
 G_drive = ox.load_graphml(GOLD_DRIVE_GRAPHML)
 
 # Troncature en WGS84
@@ -38,7 +42,6 @@ G_drive = ox.truncate.truncate_graph_bbox(
     bbox=[left, bottom, right, top]
 )
 
-# Projeter en CRS métrique
 G_drive = ox.project_graph(G_drive)
 graph_crs = G_drive.graph["crs"]
 
@@ -48,20 +51,15 @@ print("Graph loaded and truncated:", G_drive)
 # 2. Charger et préparer les POIs
 # -----------------------------
 pois = gpd.read_parquet(GOLD_POIS_GEOPARQUET)
+# print("Original POI CRS:", pois.crs)
 
-print("Original POI CRS:", pois.crs)
-
-# 1) Reprojeter en WGS84 AVANT filtrage
 pois = pois.to_crs("EPSG:4326")
-
-# 2) Filtrer en WGS84
 pois = pois.cx[left:right, bottom:top].reset_index(drop=True)
 
 print("POIs after bbox filter:", pois.shape)
 
 # 3) Reprojeter dans le CRS du graphe
 pois = pois.to_crs(graph_crs)
-
 print("POIs projected to graph CRS:", pois.shape)
 
 # -----------------------------
@@ -72,7 +70,7 @@ Y = pois.geometry.y.values
 
 pois["nearest_node"] = ox.nearest_nodes(G_drive, X, Y)
 
-print(pois.head())
+# print(pois.head())
 
 # -----------------------------
 # 4. KNN entre POIs (BallTree)
@@ -107,15 +105,12 @@ def travel_time(G, u, v):
 # 6. Construire les arêtes du graphe réduit
 # -----------------------------
 edges = []
-
+count = 0
 for i, poi in pois.iterrows():
     u = poi["nearest_node"]
-
     for j in neighbors[i]:
         v = pois.iloc[j]["nearest_node"]
-
         w_drive = travel_time(G_drive, u, v)
-
         edges.append({
             "poi_from": i,
             "poi_to": j,
@@ -123,6 +118,15 @@ for i, poi in pois.iterrows():
             "node_to": v,
             "drive_time": w_drive,
         })
+        # if count % 1000 == 0:
+        #     print(f"{count} - ",{
+        #         "poi_from": i,
+        #         "poi_to": j,
+        #         "node_from": u,
+        #         "node_to": v,
+        #         "drive_time": w_drive,
+        #     })
+        # count += 1
 
 edges_df = pd.DataFrame(edges)
 
@@ -131,3 +135,4 @@ print(edges_df[edges_df['drive_time'] != edges_df.loc[0]['drive_time']].shape)
 print(edges_df[edges_df['drive_time'] == edges_df.loc[0]['drive_time']].shape)
 print(edges_df.head(10))
 
+edges_df.to_csv(r'testing_grounds\exp6.csv', index=False)

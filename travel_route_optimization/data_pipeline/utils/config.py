@@ -8,6 +8,13 @@ GOLD_DIR    = Path(__file__).parents[2] / "data/gold"
 DEFAULT_CRS = "EPSG:4326" # WGS84       => référentiel mondial
 # DEFAULT_CRS = "EPSG:2154" # Lambert-93  => référentiel français
 
+BBOX_LEFT    = 3.10 # dimensions de la boundary box, équivalent à la ville de Bédarieux dans l'exemple
+BBOX_BOTTOM  = 43.55
+BBOX_RIGHT   = 3.22
+BBOX_TOP     = 43.67
+
+BBOX_DIMENSIONS = [BBOX_LEFT, BBOX_BOTTOM, BBOX_RIGHT, BBOX_TOP]
+
 # BRONZE
 OSM_PLACE_NAME              = "Hérault, Occitanie, France"
 DT_BRONZE_DIR               = BRONZE_DIR / "datatourisme"

@@ -7,7 +7,6 @@ import geopandas as gpd
 import logging
 
 from travel_route_optimization.data_pipeline.utils.config import BRONZE_DRIVE_GRAPHML, BRONZE_WALK_GRAPHML, DEFAULT_CRS, OSM_BRONZE_GEOPARQUET, OSM_PLACE_NAME
-from travel_route_optimization.data_pipeline.utils.pipeline_helpers import print_len_col_head
 
 ox.settings.use_cache = True
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -28,7 +27,7 @@ def get_pois() -> gpd.GeoDataFrame:
     """Récupère les POIs sous format GeoPandas."""
     log.info(f"Source => Bronze (OSM) : Téléchargement POIs ({OSM_PLACE_NAME}).")
     pois_gdf = ox.features_from_place(OSM_PLACE_NAME, tags=TAGS)
-    print_len_col_head(pois_gdf)
+    log.info(f"Source => Bronze (OSM) : POIs récupérés: {len(pois_gdf)} avec {len(pois_gdf.columns.to_list())} colonnes.")
     return pois_gdf
 
 
@@ -52,7 +51,7 @@ def ingest_bronze(pois_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk:
 
     pois = gpd.read_parquet(OSM_BRONZE_GEOPARQUET)
     from pprint import pprint
-    pprint(pois.crs)
+    # pprint(pois.crs)
 
     ox.save_graphml(G_drive, filepath=BRONZE_DRIVE_GRAPHML)
     log.info(f"Source => Bronze (OSM) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
