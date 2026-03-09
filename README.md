@@ -26,6 +26,7 @@ Les différentes étapes du projet sont à ce jour :
     source .venv\bin\activate
 
     # powershell
+    Set-ExecutionPolicy Unrestricted -Scope Process
     .venv\Scripts\activate.ps1
     ```
 

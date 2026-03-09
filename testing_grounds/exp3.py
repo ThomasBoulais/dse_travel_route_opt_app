@@ -7,7 +7,7 @@ from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
 from testing_grounds.exp2 import to_geopandas
-from travel_route_optimization.data_pipeline.utils.config import DT_DICT_TYPES_DETAILED, DT_SILVER_GEOPARQUET, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, OSM_DICT_TYPES_DETAILED, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, DT_DICT_TYPES_DETAILED, DT_SILVER_GEOPARQUET, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, OSM_DICT_TYPES_DETAILED, OSM_SILVER_GEOPARQUET
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -44,7 +44,7 @@ def dt_transform_gold():
     dt_gdf = to_geopandas(dt_df)
     dt_gdf = dt_add_category(dt_gdf)
     dt_gdf = dt_gdf.rename({'name_fr': 'name', 'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours']]
-    dt_gdf.set_crs("EPSG:2154", inplace=True)
+    dt_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return dt_gdf
 
 # OSM
@@ -80,7 +80,7 @@ def osm_transform_gold():
     osm_gdf = to_geopandas(osm_df)
     osm_gdf = osm_add_category(osm_gdf)
     osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours']]
-    osm_gdf.set_crs("EPSG:2154", inplace=True)
+    osm_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return osm_gdf
 
 
@@ -113,8 +113,8 @@ def get_id_equivalent(dt_row: gpd.GeoSeries, osm_m: gpd.GeoDataFrame) -> int|Non
 
 def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Fusionne les 2 sources de données"""
-    dt_m = dt_gdf.to_crs("EPSG:2154") # EPSG:2154 => projection métrique française officielle
-    osm_m = osm_gdf.to_crs("EPSG:2154")
+    dt_m = dt_gdf.to_crs(DEFAULT_CRS) # EPSG:2154 => projection métrique française officielle
+    osm_m = osm_gdf.to_crs(DEFAULT_CRS)
 
     dt_m['osm_match_id'] = dt_m.apply(get_id_equivalent, args=(osm_m,), axis=1)
     print(dt_m.notnull().sum())

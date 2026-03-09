@@ -3,13 +3,13 @@ import geopandas as gpd
 import folium
 
 from testing_grounds.exp2 import to_geopandas
-from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, DT_SILVER_GEOPARQUET, OSM_SILVER_GEOPARQUET
 
 # Load your slim POI GeoParquet
 osm_pois = gpd.read_parquet(OSM_SILVER_GEOPARQUET)
 
 # Make sure we're in WGS84 (latitude/longitude) — Folium expects this
-osm_pois = osm_pois.to_crs("EPSG:4326")
+osm_pois = osm_pois.to_crs(DEFAULT_CRS)
 
 # Drop rows with no name and no geometry (can't plot them)
 osm_pois = osm_pois.dropna(subset=["geometry"])
@@ -52,10 +52,10 @@ for _, row in osm_pois.iterrows():
 dt_pois = fastparquet.ParquetFile(DT_SILVER_GEOPARQUET)
 dt_pois = dt_pois.to_pandas()
 dt_pois = to_geopandas(dt_pois)
-dt_pois.set_crs("EPSG:2154", inplace=True)
+dt_pois.set_crs(DEFAULT_CRS, inplace=True)
 
 # Make sure we're in WGS84 (latitude/longitude) — Folium expects this
-dt_pois = dt_pois.to_crs("EPSG:2154")
+dt_pois = dt_pois.to_crs(DEFAULT_CRS)
 
 # Drop rows with no name and no geometry (can't plot them)
 dt_pois = dt_pois.dropna(subset=["geometry"])

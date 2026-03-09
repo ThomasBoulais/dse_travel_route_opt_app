@@ -4,6 +4,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import geopandas as gpd
 from shapely.geometry import Polygon, LineString, Point
+
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS
 # 1. merge OSM & DT into gold 
 # 1. get some datapoints from gold 
 
@@ -19,7 +21,7 @@ from shapely.geometry import Polygon, LineString, Point
 # print(df)
 # geometry = [Point(row.longitude, row.latitude) for row in df.itertuples()]
     
-# gdf = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326")
+# gdf = gpd.GeoDataFrame(df, geometry=geometry, crs=DEFAULT_CRS)
 
 # print(gdf)
 

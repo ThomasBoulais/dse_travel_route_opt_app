@@ -5,24 +5,41 @@ BRONZE_DIR  = Path(__file__).parents[2] / "data/bronze"
 SILVER_DIR  = Path(__file__).parents[2] / "data/silver"
 GOLD_DIR    = Path(__file__).parents[2] / "data/gold"
 
-GOLD_POIS_GEOPARQUET    = GOLD_DIR / "gold_pois.geoparquet"
-GOLD_POIS_CSV           = GOLD_DIR / "gold_pois.csv" # debug/exploration
-GOLD_GRAPHML            = GOLD_DIR / "road_network.graphml"
+DEFAULT_CRS = "EPSG:4326" # WGS84       => référentiel mondial
+# DEFAULT_CRS = "EPSG:2154" # Lambert-93  => référentiel français
 
+# BRONZE
 OSM_PLACE_NAME              = "Hérault, Occitanie, France"
+DT_BRONZE_DIR               = BRONZE_DIR / "datatourisme"
+DT_DUMP_URL                 = 'https://diffuseur.datatourisme.fr/webservice/e1ec2f4e53628162352a8067eb6ac3e7/071d1b42-f48c-4350-826c-e92199a99bdf'
+
 OSM_BRONZE_DIR              = BRONZE_DIR / "osm"
 OSM_BRONZE_GEOPARQUET       = OSM_BRONZE_DIR / "osm_pois.geoparquet"
-OSM_BRONZE_GRAPHML          = OSM_BRONZE_DIR / "osm_road_network.graphml"
-OSM_SILVER_GEOPARQUET       = SILVER_DIR / "osm_pois.geoparquet"
-OSM_SILVER_GRAPHML          = SILVER_DIR / "osm_road_network.graphml"
 
-DT_BRONZE_DIR           = BRONZE_DIR / "datatourisme"
-DT_DUMP_URL             = 'https://diffuseur.datatourisme.fr/webservice/e1ec2f4e53628162352a8067eb6ac3e7/071d1b42-f48c-4350-826c-e92199a99bdf'
-DT_DUMP_PATH            = DT_BRONZE_DIR / "dt_dump_gz"
-DT_DUMP_DIR             = DT_BRONZE_DIR / "dump"
-DT_INDEX_FILE           = DT_DUMP_DIR / "index.json"
-DT_SILVER_GEOPARQUET    = SILVER_DIR / "datatourisme_pois.geoparquet"
-DT_SILVER_CSV           = SILVER_DIR / "datatourisme_pois.csv" # debug/exploration
+BRONZE_DRIVE_GRAPHML        = BRONZE_DIR / "drive_network.graphml"
+BRONZE_WALK_GRAPHML         = BRONZE_DIR / "walk_network.graphml"
+
+DT_DUMP_PATH                = DT_BRONZE_DIR / "dt_dump_gz"
+DT_DUMP_DIR                 = DT_BRONZE_DIR / "dump"
+DT_INDEX_FILE               = DT_DUMP_DIR / "index.json"
+
+
+# SILVER
+OSM_SILVER_GEOPARQUET       = SILVER_DIR / "osm_pois.geoparquet"
+
+SILVER_DRIVE_GRAPHML        = SILVER_DIR / "drive_network.graphml"
+SILVER_WALK_GRAPHML         = SILVER_DIR / "walk_network.graphml"
+
+DT_SILVER_GEOPARQUET        = SILVER_DIR / "datatourisme_pois.geoparquet"
+DT_SILVER_CSV               = SILVER_DIR / "datatourisme_pois.csv" # debug/exploration
+
+
+# GOLD
+GOLD_POIS_GEOPARQUET        = GOLD_DIR / "gold_pois.geoparquet"
+GOLD_POIS_CSV               = GOLD_DIR / "gold_pois.csv" # debug/exploration
+
+GOLD_DRIVE_GRAPHML          = GOLD_DIR / "drive_network.graphml"
+GOLD_WALK_GRAPHML           = GOLD_DIR / "walk_network.graphml"
 
 DT_DICT_TYPES_DETAILED = {
     'LeisureComplex':           'leisure & entertainment',

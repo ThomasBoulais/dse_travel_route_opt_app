@@ -10,7 +10,7 @@ import osmnx as ox
 from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
-from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET, GOLD_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, GOLD_WALK_GRAPHML, OSM_SILVER_GEOPARQUET
 from travel_route_optimization.data_pipeline.utils.pipeline_helpers import dt_add_category, osm_add_category, to_geopandas
 
 
@@ -31,7 +31,7 @@ def osm_transform_gold():
     osm_gdf = to_geopandas(osm_df)
     osm_gdf = osm_add_category(osm_gdf)
     osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours']]
-    osm_gdf.set_crs("EPSG:2154", inplace=True)
+    osm_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return osm_gdf
 
 
@@ -49,7 +49,7 @@ def dt_transform_gold():
     dt_gdf = dt_add_category(dt_gdf)
     dt_gdf['name'] = dt_gdf['name_fr'].apply(lambda x: str(x[0].title()))
     dt_gdf = dt_gdf.rename({'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours']]
-    dt_gdf.set_crs("EPSG:2154", inplace=True)
+    dt_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return dt_gdf
 
 
@@ -80,8 +80,8 @@ def get_id_equivalent(dt_row: gpd.GeoSeries, osm_m: gpd.GeoDataFrame) -> int|Non
 
 def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Fusionne les 2 sources de données"""
-    dt_m = dt_gdf.to_crs("EPSG:2154") # EPSG:2154 => projection métrique française officielle
-    osm_m = osm_gdf.to_crs("EPSG:2154")
+    dt_m = dt_gdf.to_crs(DEFAULT_CRS) # EPSG:2154 => projection métrique française officielle
+    osm_m = osm_gdf.to_crs(DEFAULT_CRS)
 
     dt_m['osm_match_id'] = dt_m.apply(get_id_equivalent, args=(osm_m,), axis=1)
     print(dt_m.notnull().sum())
@@ -106,15 +106,23 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
     return gold_gdf
 
 
-def export_gold(gold_gdf: gpd.GeoDataFrame, G: gpd.GeoDataFrame) -> None:
+def export_gold(gold_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: gpd.GeoDataFrame) -> None:
     """Sauvegarde en GeoParquet (Gold) et CSV optionnel."""
+    if gold_gdf.crs is None:
+        gold_gdf = gold_gdf.set_crs(DEFAULT_CRS)
+    gold_gdf = gold_gdf.to_crs(DEFAULT_CRS)
+
     gold_gdf.to_parquet(GOLD_POIS_GEOPARQUET, index=False)
-    log.info(f"GOLD - GeoParquet sauvegardé : {GOLD_POIS_GEOPARQUET}  ({len(gold_gdf):,} lignes)")
+    log.info(f"Silver => Gold (MERGE) : GeoParquet sauvegardé : {GOLD_POIS_GEOPARQUET}  ({len(gold_gdf):,} lignes)")
 
     # CSV sans géométrie pour exploration rapide
     gold_gdf.drop(columns="geometry").to_csv(GOLD_POIS_CSV, index=False, encoding="utf-8-sig")
-    log.info(f"GOLD - CSV sauvegardé       : {GOLD_POIS_CSV}")
+    log.info(f"Silver => Gold (MERGE) : CSV sauvegardé       : {GOLD_POIS_CSV}")
 
-    ox.save_graphml(G, filepath=GOLD_GRAPHML)
-    log.info(f"GOLD - {len(G.nodes)} noeuds (nodes) et {len(G.edges)} arrêtes (edges) dans le réseau de routes.")
-    log.info(f"GOLD - Graphml sauvegardés à {GOLD_GRAPHML}")
+    ox.save_graphml(G_drive, filepath=GOLD_DRIVE_GRAPHML)
+    log.info(f"Silver => Gold (MERGE) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
+    log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {GOLD_DRIVE_GRAPHML}")
+
+    ox.save_graphml(G_walk, filepath=GOLD_WALK_GRAPHML)
+    log.info(f"Silver => Gold (MERGE) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
+    log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {GOLD_WALK_GRAPHML}")

@@ -3,12 +3,14 @@ import geopandas as gpd
 import folium
 from folium.plugins import MarkerCluster
 
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS
+
 G_sub = ox.truncate.truncate_graph_bbox(
     ox.load_graphml("data/silver/osm_road_network.graphml"),
     bbox=(3.80, 43.55, 3.95, 43.65)
 )
 nodes_gdf, edges_gdf = ox.graph_to_gdfs(G_sub)
-pois = gpd.read_parquet("data/silver/osm_pois_slim.geoparquet").to_crs("EPSG:4326")
+pois = gpd.read_parquet("data/silver/osm_pois_slim.geoparquet").to_crs(DEFAULT_CRS)
 
 # Filter POIs to the same bounding box
 pois_local = pois.cx[3.80:3.95, 43.55:43.65]  # .cx is GeoPandas spatial indexer

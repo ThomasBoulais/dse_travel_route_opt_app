@@ -1,5 +1,5 @@
 """
-DataTourisme - Transformation Bronze => Silver
+Bronze => Silver (DATATOURISME) : Transformation Bronze => Silver
 """
 
 import json
@@ -11,7 +11,7 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
 from travel_route_optimization.data_pipeline.utils.pipeline_helpers import parse_poi
-from utils.config import DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE, DT_SILVER_CSV, DT_SILVER_GEOPARQUET
+from utils.config import DEFAULT_CRS, DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE, DT_SILVER_CSV, DT_SILVER_GEOPARQUET
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -39,7 +39,7 @@ def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
             records.append(row)
 
     log.info(
-        f"DATATOURISME - Silver : {len(records):,} POI géolocalisés, "
+        f"Bronze => Silver (DATATOURISME) : {len(records):,} POI géolocalisés, "
         f"{skipped_no_geo:,} écartés (sans coordonnées)."
     )
 
@@ -52,11 +52,11 @@ def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
           .drop_duplicates(subset="id", keep="first")
           .reset_index(drop=True))
 
-    log.info(f"DATATOURISME - Silver : {len(df):,} POI après déduplication.")
+    log.info(f"Bronze => Silver (DATATOURISME) : {len(df):,} POI après déduplication.")
 
     # Création de la géométrie
     geometry = [Point(row.longitude, row.latitude) for row in df.itertuples()]
-    gdf = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326")
+    gdf = gpd.GeoDataFrame(df, geometry=geometry, crs=DEFAULT_CRS)
 
     return gdf
 
@@ -64,8 +64,8 @@ def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
 def export_silver(gdf: gpd.GeoDataFrame) -> None:
     """Sauvegarde en GeoParquet (Silver) et CSV optionnel."""
     gdf.to_parquet(DT_SILVER_GEOPARQUET, index=False)
-    log.info(f"DATATOURISME - GeoParquet sauvegardé : {DT_SILVER_GEOPARQUET}  ({len(gdf):,} lignes)")
+    log.info(f"Bronze => Silver (DATATOURISME) : GeoParquet sauvegardé {DT_SILVER_GEOPARQUET}  ({len(gdf):,} lignes)")
 
     # CSV sans géométrie pour exploration rapide
     gdf.drop(columns="geometry").to_csv(DT_SILVER_CSV, index=False, encoding="utf-8-sig")
-    log.info(f"DATATOURISME - CSV sauvegardé       : {DT_SILVER_CSV}")
+    log.info(f"Bronze => Silver (DATATOURISME) : CSV sauvegardé {DT_SILVER_CSV}")

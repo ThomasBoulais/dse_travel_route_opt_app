@@ -5,7 +5,7 @@ import folium
 pois = gpd.read_parquet("data/silver/osm_pois_slim.geoparquet")
 
 # Make sure we're in WGS84 (latitude/longitude) — Folium expects this
-pois = pois.to_crs("EPSG:4326")
+pois = pois.to_crs(DEFAULT_CRS)
 
 # Drop rows with no name and no geometry (can't plot them)
 pois = pois.dropna(subset=["geometry"])

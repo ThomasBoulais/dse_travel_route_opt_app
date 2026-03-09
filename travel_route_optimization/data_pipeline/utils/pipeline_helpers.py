@@ -202,7 +202,7 @@ def osm_add_category(osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Affecte les catégories correspondantes aux types des POIs (OSM)"""
     osm_gdf['types'] = osm_gdf.apply(lambda x: osm_get_types(x.tourism, x.amenity, x.historic, x.leisure, x.natural), axis=1)
     osm_gdf['categories'] = osm_gdf['types'].apply(summarize_types, args=(OSM_DICT_TYPES_DETAILED,))
-    log.info("OSM - Gold : Catégories ajoutées aux POIs")
+    log.info("Silver => Gold (OSM) : Catégories ajoutées aux POIs")
     return osm_gdf
 
 
@@ -222,6 +222,6 @@ def summarize_types(types: str, dict_types_detailed: dict) -> str:
 def dt_add_category(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Affecte les catégories correspondantes aux types des POIs (DATATourisme)"""
     dt_gdf['categories'] = dt_gdf['types'].apply(summarize_types, args=(DT_DICT_TYPES_DETAILED,))
-    log.info("DATATOURISME - Gold : Catégories ajoutées aux POIs")
+    log.info("Silver => Gold (DATATOURISME) : Catégories ajoutées aux POIs")
     return dt_gdf
 

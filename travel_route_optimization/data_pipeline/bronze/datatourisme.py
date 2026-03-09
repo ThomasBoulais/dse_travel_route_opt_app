@@ -41,10 +41,10 @@ def extract_dump() -> None:
 
 def load_index() -> list[dict]:
     """Charge index.json vers une liste de {label, file, lastUpdateDatatourisme}."""
-    log.info(f"DATATOURSIME - Lecture de l'index : {DT_INDEX_FILE}")
+    log.info(f"Source => Bronze (DATATOURISME) : Lecture de l'index {DT_INDEX_FILE}")
     with open(DT_INDEX_FILE, encoding="utf-8") as f:
         index = json.load(f)
-    log.info(f"DATATOURSIME - {len(index):,} entrées dans l'index.")
+    log.info(f"Source => Bronze (DATATOURISME) : {len(index):,} entrées dans l'index.")
     return index
 
 
@@ -59,7 +59,7 @@ def ingest_bronze(index: list[dict]) -> list[dict]:
     for item in index:
         filepath = DT_DUMP_DIR / 'objects' / item["file"]
         if not filepath.exists():
-            log.warning(f"DATATOURSIME - Fichier introuvable : {filepath}")
+            log.warning(f"Source => Bronze (DATATOURISME) : Fichier introuvable {filepath}")
             errors += 1
             continue
         try:
@@ -71,8 +71,8 @@ def ingest_bronze(index: list[dict]) -> list[dict]:
             else:
                 raw_entries.append(entry)
         except (json.JSONDecodeError, OSError) as e:
-            log.warning(f"DATATOURSIME - Erreur lecture {filepath} : {e}")
+            log.warning(f"Source => Bronze (DATATOURISME) : Erreur lecture {filepath} : {e}")
             errors += 1
 
-    log.info(f"DATATOURISME - Bronze : {len(raw_entries):,} objets chargés ({errors} erreurs).")
+    log.info(f"Source => Bronze (DATATOURISME) : {len(raw_entries):,} objets chargés ({errors} erreurs).")
     return raw_entries

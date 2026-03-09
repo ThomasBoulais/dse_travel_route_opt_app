@@ -6,7 +6,7 @@ import osmnx as ox
 import geopandas as gpd
 import logging
 
-from travel_route_optimization.data_pipeline.utils.config import OSM_BRONZE_GEOPARQUET, OSM_BRONZE_GRAPHML, OSM_PLACE_NAME, OSM_SILVER_GEOPARQUET, OSM_SILVER_GRAPHML
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, OSM_SILVER_GEOPARQUET, SILVER_DRIVE_GRAPHML, SILVER_WALK_GRAPHML
 from travel_route_optimization.data_pipeline.utils.pipeline_helpers import print_len_col_head
 
 ox.settings.use_cache = True
@@ -38,7 +38,7 @@ RELEVANT_FIELDS = [
 
 def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Réduit aux colonnes utiles + convertit les batîments en point unique (centroïde)."""
-    log.info("OSM - Silver : Réduction des POIs aux colonnes pertinentes")
+    log.info("Bronze => Silver (OSM) : Réduction des POIs aux colonnes pertinentes")
     slim_pois_gdf = pois_gdf[RELEVANT_FIELDS].copy()
     slim_pois_gdf["geometry"] = slim_pois_gdf["geometry"].apply(
         lambda geom: geom.centroid if geom.geom_type != "Point" else geom
@@ -47,12 +47,18 @@ def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return slim_pois_gdf
 
 
-def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G: gpd.GeoDataFrame) -> None:
+def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: gpd.GeoDataFrame) -> None:
     """ Sauvegarde en  GeoParquet & Graphml (passage Bronze => Silver)."""
-    slim_pois_gdf = slim_pois_gdf.to_crs("EPSG:4326")  # ensure standard WGS84 coordinates
+    if slim_pois_gdf.crs is None:
+        slim_pois_gdf = slim_pois_gdf.set_crs(DEFAULT_CRS)
+    slim_pois_gdf = slim_pois_gdf.to_crs(DEFAULT_CRS)  # ensure standard WGS84 coordinates
     slim_pois_gdf.to_parquet(OSM_SILVER_GEOPARQUET)
-    log.info(f"OSM - Silver : GeoParquet POIs sauvegardés à {OSM_SILVER_GEOPARQUET}")
+    log.info(f"Bronze => Silver (OSM) : GeoParquet POIs sauvegardés à {OSM_SILVER_GEOPARQUET}")
 
-    ox.save_graphml(G, filepath=OSM_SILVER_GRAPHML)
-    log.info(f"OSM - Silver : {len(G.nodes)} noeuds (nodes) et {len(G.edges)} arrêtes (edges) dans le réseau de routes.")
-    log.info(f"OSM - Silver : Graphml sauvegardés à {OSM_SILVER_GRAPHML}")
+    ox.save_graphml(G_drive, filepath=SILVER_DRIVE_GRAPHML)
+    log.info(f"Bronze => Silver (OSM) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
+    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {SILVER_DRIVE_GRAPHML}")
+
+    ox.save_graphml(G_walk, filepath=SILVER_WALK_GRAPHML)
+    log.info(f"Bronze => Silver (OSM) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
+    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {SILVER_WALK_GRAPHML}")
