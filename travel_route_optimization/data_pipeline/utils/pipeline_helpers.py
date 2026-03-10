@@ -1,13 +1,15 @@
 import logging
 import re
 import unicodedata
-import fastparquet
+import networkx as nx
+import osmnx as ox
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 from shapely import wkb
+from sklearn.neighbors import BallTree
 
-from travel_route_optimization.data_pipeline.utils.config import DT_DICT_TYPES_DETAILED, DT_SILVER_GEOPARQUET, OSM_DICT_TYPES_DETAILED, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.config import DT_DICT_TYPES_DETAILED, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET, KNN_VALUE, OSM_DICT_TYPES_DETAILED
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
@@ -174,9 +176,20 @@ def to_geopandas(df: pd.DataFrame) -> gpd.GeoDataFrame:
     df['geometry'] = df['geometry'].apply(convert_wkb_to_geom)
     df = df[df['geometry'].notnull()]
     gdf = gpd.GeoDataFrame(df, geometry='geometry')
-
     return gdf
 
+
+def select_visit_type(categories: str) -> str:
+    """Attribue le type de visit_duration selon s'il s'agit d'une accomodation ou d'un POI générique"""
+    if re.search('accomodation', categories):
+        return 480 # 8h en minutes
+    return 60 # 1h en minutes
+
+
+def add_visit_duration(pois: gpd.GeoDataFrame, src: str) -> gpd.GeoDataFrame:
+    pois['visit_duration'] = pois['categories'].apply(select_visit_type)
+    log.info(f"Silver => Gold ("src") : Durées de visite ajoutées aux POIs")
+    return pois
 
 # OSM
 
@@ -224,6 +237,7 @@ def detect_special_cases(text):
         return "24_7"
     return None
 
+
 def parse_osm_hours(text):
     """Récupère les horaires par jour depuis opening_hours"""
     results = []
@@ -248,7 +262,6 @@ def parse_osm_hours(text):
             if re.match(r"^\d{1,2}:\d{2}$", start) and re.match(r"^\d{1,2}:\d{2}$", end):
                 for d in days:
                     results.append({"day": d, "start": start, "end": end})
-
     return results
 
 
@@ -259,6 +272,7 @@ def to_minutes(hhmm):
         return h * 60 + m
     except:
         return None
+
 
 def build_open_mask(parsed):
     """Construit un masque de minutes d'ouverture chaque jour (1 = ouvert, 0 = fermé)"""
@@ -321,7 +335,6 @@ def opening_hours_to_mask(raw):
     # pprint(f"PARSED - {parsed}")
     if not parsed:
         return HORAIRE_GENERIQUE
-
     return build_open_mask(parsed)
 
 
@@ -353,7 +366,7 @@ def dt_add_category(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 def dt_select_opening_mask_type(categories: str) -> str:
-    """Attribue le type de opening_mask selon s'il s'agit d'un restaurant ou pas"""
+    """Attribue le type de opening_mask selon s'il s'agit d'un restau, accomodation ou POI générique"""
     if re.search('restauration', categories):
         return HORAIRE_RESTAURATION
     if re.search('accomodation', categories):
@@ -366,3 +379,55 @@ def dt_add_open_hour_mask(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     dt_gdf["opening_mask"] = dt_gdf['categories'].apply(dt_select_opening_mask_type)
     log.info("Silver => Gold (DATATOURISME) : Opening mask ajoutées aux POIs")
     return dt_gdf
+
+
+# GRAPHE KNN DE TRAINING POUR LE RL
+
+def get_drive_network(left: float, bottom: float, right: float, top: float) -> gpd.GeoDataFrame:
+    """Récupère le graphml du réseau de route"""
+    ox.settings.default_crs = "EPSG:4326"
+    G_drive = ox.load_graphml(GOLD_DRIVE_GRAPHML)
+    G_drive = ox.truncate.truncate_graph_bbox(G_drive, bbox=[left, bottom, right, top])
+    G_drive = ox.project_graph(G_drive)
+    return G_drive
+
+
+def get_pois(G_drive: gpd.GeoDataFrame, left: float, bottom: float, right: float, top: float) -> gpd.GeoDataFrame:
+    """Récupère le GeoDataFrame des POIs dans le même CRS que G_drive"""
+    pois = gpd.read_parquet(GOLD_POIS_GEOPARQUET)
+    pois = pois.to_crs("EPSG:4326")
+    pois = pois.cx[left:right, bottom:top].reset_index(drop=True)
+    pois = pois.to_crs(G_drive.graph["crs"])
+    return pois
+
+
+def nearest_node(pois: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Associe à chaque POI son node le plus proche"""
+    X = pois.geometry.x.values
+    Y = pois.geometry.y.values
+    pois["nearest_node"] = ox.nearest_nodes(G_drive, X, Y)
+    return pois
+
+
+def get_knn_pois(pois: gpd.GeoDataFrame) -> list[int]:
+    coords = np.vstack([pois.geometry.y.values, pois.geometry.x.values]).T
+    tree = BallTree(np.radians(coords), metric="haversine")
+    
+    distances, indices = tree.query(np.radians(coords), k=KNN_VALUE + 1)
+    neighbors = [set(idx[1:]) for idx in indices]
+    return neighbors
+
+
+def add_travel_time(G: gpd.GeoDataFrame, speed_kmh: int) -> None:
+    for u, v, data in G.edges(data=True):
+        length = data.get("length")
+        if length is None:
+            continue
+        data["travel_time"] = length / (speed_kmh * 1000 / 3600)
+
+
+def travel_time(G, u, v):
+    try:
+        return nx.shortest_path_length(G, u, v, weight="travel_time")
+    except:
+        return np.inf

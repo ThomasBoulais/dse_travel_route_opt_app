@@ -11,8 +11,9 @@ import osmnx as ox
 from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
-from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, GOLD_WALK_GRAPHML, OSM_SILVER_GEOPARQUET
-from travel_route_optimization.data_pipeline.utils.pipeline_helpers import dt_add_category, dt_add_open_hour_mask, osm_add_category, osm_add_open_hour_mask, to_geopandas
+from travel_route_optimization.data_pipeline.bronze.osm import get_pois
+from travel_route_optimization.data_pipeline.utils.config import BBOX_BOTTOM, BBOX_LEFT, BBOX_RIGHT, BBOX_TOP, DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.pipeline_helpers import add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_drive_network, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -33,7 +34,9 @@ def osm_transform_gold():
     osm_gdf = to_geopandas(osm_df)
     osm_gdf = osm_add_category(osm_gdf)
     osm_gdf = osm_add_open_hour_mask(osm_gdf)
-    osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours', 'opening_mask']]
+    osm_gdf = add_visit_duration(osm_gdf, 'OSM')
+
+    osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours', 'opening_mask', 'visit_duration']]
     osm_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return osm_gdf
 
@@ -52,8 +55,10 @@ def dt_transform_gold():
     dt_gdf = to_geopandas(dt_df)
     dt_gdf = dt_add_category(dt_gdf)
     dt_gdf = dt_add_open_hour_mask(dt_gdf)
+    dt_gdf = add_visit_duration(dt_gdf, 'DATATOURISME')
+
     dt_gdf['name'] = dt_gdf['name_fr'].apply(lambda x: str(x[0].title()))
-    dt_gdf = dt_gdf.rename({'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours', 'opening_mask']]
+    dt_gdf = dt_gdf.rename({'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours', 'opening_mask', 'visit_duration']]
     dt_gdf.set_crs(DEFAULT_CRS, inplace=True)
     return dt_gdf
 
@@ -108,17 +113,38 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
     osm_uniq = osm_m.reset_index()[(osm_m.reset_index()['name'].notnull()) & (~osm_m.reset_index()['id'].isin(osm_match_id))]
     
     gold_gdf = pd.concat([dt_osm, dt_uniq, osm_uniq])[['name', 'geometry', 'categories', 'types', 'email', 'phone', 
-                                                    'website', 'opening_hours', 'opening_mask']]
+                                                    'website', 'opening_hours', 'opening_mask', 'visit_duration']]
     
     log.info(f"Silver => Gold (MERGE) : {gold_gdf.shape[0]} POIs récupérés après fusion,"
-             f"après fusion entre {dt_uniq.shape[0]} POIs DATATourisme et {osm_uniq.shape[0]} POIs OSM ({dt_osm.shape[0]} POIs en commun)")
+             f" entre {dt_uniq.shape[0]} POIs DATATourisme et {osm_uniq.shape[0]} POIs OSM ({dt_osm.shape[0]} POIs en commun)")
     
     return gold_gdf
 
 
 # CREATION GRAPHE POUR RL
 
+def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) -> pd.DataFrame:
+    """Génère le graphe de training du RL (K voisins les plus proches (KNN) par POI avec temps de trajet pour chaque arrête)"""
+    pois = nearest_node(pois, G_drive)
+    neighbors = get_knn_pois(pois)
 
+    add_travel_time(G_drive, DRIVE_SPEED)
+
+    edges = []
+    for i, poi in pois.iterrows():
+        u = poi["nearest_node"]
+        for j in neighbors[i]:
+            v = pois.iloc[j]["nearest_node"]
+            w_drive = travel_time(G_drive, u, v)
+            edges.append({
+                "poi_from": i,
+                "poi_to": j,
+                "node_from": u,
+                "node_to": v,
+                "drive_time": w_drive,
+            })
+    edges_df = pd.DataFrame(edges)
+    return edges_df
 
 
 # EXPORT
@@ -130,8 +156,15 @@ def flatten_mask(x):
     return x.flatten().tolist()
 
 
-def export_gold(gold_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: gpd.GeoDataFrame) -> None:
-    """Sauvegarde en GeoParquet (Gold) et CSV optionnel."""
+def export_gold(gold_gdf: gpd.GeoDataFrame, 
+                G_drive : gpd.GeoDataFrame, 
+                # G_walk  : gpd.GeoDataFrame,
+                edges_df: pd.DataFrame) -> None:
+    """Sauvegarde :
+    - les POIs en GeoParquet (Gold) avec CSV optionnel pour analyse,
+    - le réseau de route en voiture en Geoparquet,
+    - le graphe des KNN avec tps de trajet en pd.DataFrame
+    """
     if gold_gdf.crs is None:
         gold_gdf = gold_gdf.set_crs(DEFAULT_CRS)
     gold_gdf = gold_gdf.to_crs(DEFAULT_CRS)
@@ -151,6 +184,11 @@ def export_gold(gold_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: g
     log.info(f"Silver => Gold (MERGE) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
     log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {GOLD_DRIVE_GRAPHML}")
 
-    ox.save_graphml(G_walk, filepath=GOLD_WALK_GRAPHML)
-    log.info(f"Silver => Gold (MERGE) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
-    log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {GOLD_WALK_GRAPHML}")
+    # ox.save_graphml(G_walk, filepath=GOLD_WALK_GRAPHML)
+    # log.info(f"Silver => Gold (MERGE) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
+    # log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {GOLD_WALK_GRAPHML}")
+
+    edges_df.to_csv(KNN_DRIVE_TIME_GRAPH_DF, index=False)
+    log.info(f"Silver => Gold (MERGE) : {len(edges_df)} arrêtes dans le graphe KNN.")
+    log.info(f"Silver => Gold (MERGE) : pd.DataFrame sauvegardés à {KNN_DRIVE_TIME_GRAPH_DF}")
+

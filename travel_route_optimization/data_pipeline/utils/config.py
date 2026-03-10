@@ -8,10 +8,16 @@ GOLD_DIR    = Path(__file__).parents[2] / "data/gold"
 DEFAULT_CRS = "EPSG:4326" # WGS84       => référentiel mondial
 # DEFAULT_CRS = "EPSG:2154" # Lambert-93  => référentiel français
 
-BBOX_LEFT    = 3.10 # dimensions de la boundary box, équivalent à la ville de Bédarieux dans l'exemple
-BBOX_BOTTOM  = 43.55
-BBOX_RIGHT   = 3.22
-BBOX_TOP     = 43.67
+# BBOX_LEFT    = 3.10 # dimensions de la boundary box, équivalent à la ville de Bédarieux dans l'exemple
+# BBOX_BOTTOM  = 43.55
+# BBOX_RIGHT   = 3.22
+# BBOX_TOP     = 43.67
+
+lon_centre, lat_centre = 43.6502211, 3.3741647 # lac du salagou
+BBOX_LEFT   = lat_centre - .155
+BBOX_RIGHT  = lat_centre + .155
+BBOX_BOTTOM = lon_centre - .125
+BBOX_TOP    = lon_centre + .125
 
 BBOX_DIMENSIONS = [BBOX_LEFT, BBOX_BOTTOM, BBOX_RIGHT, BBOX_TOP]
 
@@ -48,6 +54,9 @@ GOLD_POIS_CSV               = GOLD_DIR / "gold_pois.csv" # debug/exploration
 GOLD_DRIVE_GRAPHML          = GOLD_DIR / "drive_network.graphml"
 GOLD_WALK_GRAPHML           = GOLD_DIR / "walk_network.graphml"
 KNN_DRIVE_TIME_GRAPH_DF     = GOLD_DIR / "knn_drive_time_graph_df.csv"
+
+DRIVE_SPEED     = 40 # km/h
+KNN_VALUE       = 25 # le nombre de voisins les plus proches à considérer par POI
 
 DT_DICT_TYPES_DETAILED = {
     'LeisureComplex':           'leisure & entertainment',

@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 # SILVER
 
-def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
+def transform_silver(raw_entries: list[dict], left: float, right: float, bottom: float, top: float) -> gpd.GeoDataFrame:
     """
     Transforme les entrées brutes en GeoDataFrame nettoyé (Silver).
     - Exclut les POI sans coordonnées
@@ -54,6 +54,9 @@ def transform_silver(raw_entries: list[dict]) -> gpd.GeoDataFrame:
     # Création de la géométrie
     geometry = [Point(row.longitude, row.latitude) for row in df.itertuples()]
     gdf = gpd.GeoDataFrame(df, geometry=geometry, crs=DEFAULT_CRS)
+
+    # Troncature sur la boundary box
+    gdf = gdf.cx[left:right, bottom:top].reset_index(drop=True)
 
     return gdf
 

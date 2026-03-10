@@ -30,6 +30,17 @@ def dt_add_open_hour_mask(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return dt_gdf
 
 
+def select_visit_type(categories: str) -> str:
+    """Attribue le type de visit_duration selon s'il s'agit d'une accomodation ou d'un POI générique"""
+    if re.search('accomodation', categories):
+        return 480 # 8h en minutes
+    return 60 # 1h en minutes
+
+def add_visit_duration(pois: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    pois['visit_duration'] = pois['categories'].apply(select_visit_type)
+    log.info("Silver => Gold (DATATOURISME) : Durées de visite ajoutées aux POIs")
+    return pois
+
 pois = dt_transform_gold()
 
 pois = dt_add_open_hour_mask(pois)

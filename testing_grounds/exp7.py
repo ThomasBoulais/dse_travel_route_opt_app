@@ -5,9 +5,9 @@
 
 # 2. interest_score
 # A partir des category, définir un score d'intérêt (aka profit) à maximiser lors de l'entrainement
-# - pouvoir donner des notes générales par categories
+# - pouvoir donner des notes générales par categorie
 # - comment gérer les multiples categories de plusieurs types ? prendre la note de la meilleure
-# (- pouvoir zoomer sur les sous-catégories)
+# (- pouvoir donner du détail sur les sous-catégories)
 
 # 3. visit_duration
 # Fixer la durée des visites à sommer aux temps de trajet en secondes pour obtenir le poids de chaque arrête 
@@ -33,10 +33,10 @@ pois = gpd.read_parquet(GOLD_POIS_GEOPARQUET)
 dict_interest_score = {
     'leisure & entertainment'                           : 8,
     'cultural, historical & religious events or sites'  : 10,
-    'parks, garden & nature'                            : 6,
-    'sportive'                                          : 4,
-    'restauration'                                      : 2,
-    'accomodation'                                      : 0,
+    'parks, garden & nature'                            : 7,
+    'sportive'                                          : 5,
+    'restauration'                                      : 6,
+    'accomodation'                                      : 4,
     'transport & mobility'                              : 0,
     'utilitaries'                                       : 0,
     ''                                                  : 0
@@ -44,18 +44,18 @@ dict_interest_score = {
 
 
 def add_interest_score_score(poi: gpd.GeoSeries, dict_interest_score: dict) -> int:
-
+    """Ajoute la valeur la plus élevée d'intérêt par catégorie pour chaque POI"""
     m_interest_score = 0
-    # print(poi['categories'])
     for cat in poi['categories'].split("|"):
-        # print(f"{cat} : {dict_interest_score[cat]}")
         if dict_interest_score[cat] > m_interest_score:
             m_interest_score = dict_interest_score[cat]
-    # print(f"{poi['categories']} => {m_interest_score}")
     return m_interest_score
 
+
+
+
 pois['interest_score'] = pois.apply(add_interest_score_score, args=(dict_interest_score,), axis=1)
-pois['visit_duration'] = 30 * 60 # en secondes
+pois['visit_duration'] = 45 * 60 # en secondes
 
 print(pois.loc[0])
 
@@ -63,21 +63,20 @@ print(pois.loc[0])
 # 
 # définir une zone avec assez de points pour établir un réseau
 
+# left = 3.80 # Bédarieux
+# right = 3.95
+# top = 43.65
+# bottom = 43.55
 
-left = 3.80
-right = 3.95
-top = 43.65
-bottom = 43.55
-
-bottom, left    = 43.55, 3.03
-top, right      = 43.70, 3.62
+# bottom, left    = 43.55, 3.03 # zone entre Lamalou-les-Bains & Clermont l'Hérault
+# top, right      = 43.70, 3.62
 
 lon_centre, lat_centre = 43.6502211, 3.3741647 # lac du salagou
 
-left    = lat_centre - .2
-right   = lat_centre + .2
-bottom  = lon_centre - .1
-top     = lon_centre + .1
+left    = lat_centre - .155
+right   = lat_centre + .155
+bottom  = lon_centre - .125
+top     = lon_centre + .125
 
 
 print(len(pois.cx[left:right, bottom:top]))

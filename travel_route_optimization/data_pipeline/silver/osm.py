@@ -42,6 +42,7 @@ def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     slim_pois_gdf["geometry"] = slim_pois_gdf["geometry"].apply(
         lambda geom: geom.centroid if geom.geom_type != "Point" else geom
     )
+
     log.info(f"Source => Bronze (OSM) : POIs récupérés: {len(slim_pois_gdf)} avec {len(slim_pois_gdf.columns.to_list())} colonnes.")
     return slim_pois_gdf
 

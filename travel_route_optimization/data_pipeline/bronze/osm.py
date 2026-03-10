@@ -23,6 +23,7 @@ TAGS = {
 
 # BRONZE
 
+# si lieu nommé
 def get_pois() -> gpd.GeoDataFrame:
     """Récupère les POIs sous format GeoPandas."""
     log.info(f"Source => Bronze (OSM) : Téléchargement POIs ({OSM_PLACE_NAME}).")
@@ -31,10 +32,30 @@ def get_pois() -> gpd.GeoDataFrame:
     return pois_gdf
 
 
-def get_road_networks(network_type) -> gpd.GeoDataFrame:
-    """Récupère les réseaux de routes sour format GeoPandas."""
+# si boundary box
+def get_pois(left: float, right: float, bottom: float, top: float) -> gpd.GeoDataFrame:
+    """Récupère les POIs sous format GeoPandas."""
+    log.info(f"Source => Bronze (OSM) : Téléchargement POIs ({left}:{right}, {bottom}:{top}).")
+    pois_gdf = ox.features_from_bbox(bbox=(left, bottom, right, top), tags=TAGS)
+    log.info(f"Source => Bronze (OSM) : POIs récupérés: {len(pois_gdf)} avec {len(pois_gdf.columns.to_list())} colonnes.")
+    return pois_gdf
+
+
+# si lieu nommé
+def get_road_networks(network_type: str) -> gpd.GeoDataFrame:
+    """Récupère les réseaux de routes sous format GeoPandas."""
     log.info(f"Source => Bronze (OSM) : Téléchargement réseau de routes '{network_type}' ({OSM_PLACE_NAME}).")
     G = ox.graph_from_place(OSM_PLACE_NAME, network_type=network_type)
+    G = ox.add_edge_speeds(G)
+    G = ox.add_edge_travel_times(G)
+    return G
+
+
+# si boundary box
+def get_road_networks(network_type: str, left: float, right: float, bottom: float, top: float) -> gpd.GeoDataFrame:
+    """Récupère les réseaux de routes sous format GeoPandas."""
+    log.info(f"Source => Bronze (OSM) : Téléchargement réseau de routes '{network_type}' ({left}:{right}, {bottom}:{top}).")
+    G = ox.graph_from_bbox(bbox=(left, bottom, right, top), network_type=network_type)
     G = ox.add_edge_speeds(G)
     G = ox.add_edge_travel_times(G)
     return G
