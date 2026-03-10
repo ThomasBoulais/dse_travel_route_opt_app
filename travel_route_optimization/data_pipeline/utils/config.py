@@ -47,6 +47,7 @@ GOLD_POIS_CSV               = GOLD_DIR / "gold_pois.csv" # debug/exploration
 
 GOLD_DRIVE_GRAPHML          = GOLD_DIR / "drive_network.graphml"
 GOLD_WALK_GRAPHML           = GOLD_DIR / "walk_network.graphml"
+KNN_DRIVE_TIME_GRAPH_DF     = GOLD_DIR / "knn_drive_time_graph_df.csv"
 
 DT_DICT_TYPES_DETAILED = {
     'LeisureComplex':           'leisure & entertainment',

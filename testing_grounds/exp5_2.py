@@ -1,14 +1,42 @@
 
-
+from logging import log
 import geopandas as gpd
-from pprint import pprint
-
-from travel_route_optimization.data_pipeline.utils.config import DT_SILVER_GEOPARQUET
-from travel_route_optimization.data_pipeline.utils.pipeline_helpers import HORAIRE_GENERIQUE, dt_add_open_hour_mask
+from travel_route_optimization.data_pipeline.gold.gold import dt_transform_gold
 
 
-pois = gpd.read_parquet(DT_SILVER_GEOPARQUET)
+import re
+
+from travel_route_optimization.data_pipeline.utils.pipeline_helpers import HORAIRE_ACCOMODATION, HORAIRE_GENERIQUE, HORAIRE_RESTAURATION
+
+def bool_restau(categories: str) -> str:
+    """Ajoute les catégoires à une chaîne de caractères des types"""
+    if re.search('restauration', categories):
+        return True
+    return False
+
+def dt_select_opening_mask_type(categories: str) -> str:
+    """Attribue le type de opening_mask selon s'il s'agit d'un restaurant ou pas"""
+    if re.search('restauration', categories):
+        return HORAIRE_RESTAURATION
+    if re.search('accomodation', categories):
+        return HORAIRE_ACCOMODATION
+    return HORAIRE_GENERIQUE
+
+
+def dt_add_open_hour_mask(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Affecte un masque d'horaires d'ouverture (vu le format en date et non horaire, toutes les horaires sont fixés en générique)"""
+    dt_gdf["opening_mask"] = dt_gdf['categories'].apply(dt_select_opening_mask_type)
+    log.info("Silver => Gold (DATATOURISME) : Opening mask ajoutées aux POIs")
+    return dt_gdf
+
+
+pois = dt_transform_gold()
 
 pois = dt_add_open_hour_mask(pois)
 
-print(pois["opening_mask"].head())
+# pois['opening_mask'] = pois['categories'].apply(dt_select_opening_mask_type)
+
+pois['bool_restau'] = pois['categories'].apply(bool_restau)
+
+print(pois[pois['bool_restau']].head())
+print(pois[~pois['bool_restau']].head())

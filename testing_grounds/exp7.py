@@ -59,16 +59,26 @@ pois['visit_duration'] = 30 * 60 # en secondes
 
 print(pois.loc[0])
 
-# rajouter OH !
-oh_year_set = set()
+# rajouter OH -> rajouté sous forme de mask pour le RL 
+# 
+# définir une zone avec assez de points pour établir un réseau
 
-oh_hour_set = set()
 
-for i in range(len(pois)):
-    if not pd.isna(pois.loc[i]['opening_hours']):
-        if re.search("20[0-9]+", pois.loc[i]['opening_hours']) :
-            oh_year_set.add(pois.loc[i]['opening_hours'])
-        else:
-            oh_hour_set.add(pois.loc[i]['opening_hours'])
+left = 3.80
+right = 3.95
+top = 43.65
+bottom = 43.55
 
-pprint(oh_hour_set)
+bottom, left    = 43.55, 3.03
+top, right      = 43.70, 3.62
+
+lon_centre, lat_centre = 43.6502211, 3.3741647 # lac du salagou
+
+left    = lat_centre - .2
+right   = lat_centre + .2
+bottom  = lon_centre - .1
+top     = lon_centre + .1
+
+
+print(len(pois.cx[left:right, bottom:top]))
+

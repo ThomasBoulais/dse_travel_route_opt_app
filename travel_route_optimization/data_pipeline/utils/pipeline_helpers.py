@@ -279,12 +279,30 @@ def build_open_mask(parsed):
 
 
 HORAIRE_GENERIQUE = build_open_mask(
-    [{'day': 'Mo', 'start': '08:00', 'end': '12:00'}, {'day': 'Mo', 'start': '14:00', 'end': '18:00'},
+    [{'day': 'Mo', 'start': '00:00', 'end': '12:00'}, {'day': 'Mo', 'start': '14:00', 'end': '18:00'},
      {'day': 'Tu', 'start': '08:00', 'end': '12:00'}, {'day': 'Tu', 'start': '14:00', 'end': '18:00'},
      {'day': 'We', 'start': '08:00', 'end': '12:00'}, {'day': 'We', 'start': '14:00', 'end': '18:00'},
      {'day': 'Th', 'start': '08:00', 'end': '12:00'}, {'day': 'Th', 'start': '14:00', 'end': '18:00'},
      {'day': 'Fr', 'start': '08:00', 'end': '12:00'}, {'day': 'Fr', 'start': '14:00', 'end': '18:00'},
      {'day': 'Sa', 'start': '08:00', 'end': '12:00'}, {'day': 'Sa', 'start': '14:00', 'end': '18:00'},]
+)
+
+HORAIRE_RESTAURATION = build_open_mask(
+    [{'day': 'Mo', 'start': '12:00', 'end': '15:00'}, {'day': 'Mo', 'start': '18:00', 'end': '23:00'},
+     {'day': 'Tu', 'start': '12:00', 'end': '15:00'}, {'day': 'Tu', 'start': '18:00', 'end': '23:00'},
+     {'day': 'We', 'start': '12:00', 'end': '15:00'}, {'day': 'We', 'start': '18:00', 'end': '23:00'},
+     {'day': 'Th', 'start': '12:00', 'end': '15:00'}, {'day': 'Th', 'start': '18:00', 'end': '23:00'},
+     {'day': 'Fr', 'start': '12:00', 'end': '15:00'}, {'day': 'Fr', 'start': '18:00', 'end': '23:00'},
+     {'day': 'Sa', 'start': '12:00', 'end': '15:00'}, {'day': 'Sa', 'start': '18:00', 'end': '23:00'},]
+)
+
+HORAIRE_ACCOMODATION = build_open_mask(
+    [{'day': 'Mo', 'start': '00:00', 'end': '11:00'}, {'day': 'Mo', 'start': '16:00', 'end': '00:00'},
+     {'day': 'Tu', 'start': '00:00', 'end': '11:00'}, {'day': 'Tu', 'start': '16:00', 'end': '00:00'},
+     {'day': 'We', 'start': '00:00', 'end': '11:00'}, {'day': 'We', 'start': '16:00', 'end': '00:00'},
+     {'day': 'Th', 'start': '00:00', 'end': '11:00'}, {'day': 'Th', 'start': '16:00', 'end': '00:00'},
+     {'day': 'Fr', 'start': '00:00', 'end': '11:00'}, {'day': 'Fr', 'start': '16:00', 'end': '00:00'},
+     {'day': 'Sa', 'start': '00:00', 'end': '11:00'}, {'day': 'Sa', 'start': '16:00', 'end': '00:00'},]
 )
 
 
@@ -334,8 +352,17 @@ def dt_add_category(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return dt_gdf
 
 
+def dt_select_opening_mask_type(categories: str) -> str:
+    """Attribue le type de opening_mask selon s'il s'agit d'un restaurant ou pas"""
+    if re.search('restauration', categories):
+        return HORAIRE_RESTAURATION
+    if re.search('accomodation', categories):
+        return HORAIRE_ACCOMODATION
+    return HORAIRE_GENERIQUE
+
+
 def dt_add_open_hour_mask(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Affecte un masque d'horaires d'ouverture (vu le format en date et non horaire, toutes les horaires sont fixés en générique)"""
-    dt_gdf["opening_mask"] = dt_gdf.apply(lambda _ : HORAIRE_GENERIQUE, axis=1)
+    dt_gdf["opening_mask"] = dt_gdf['categories'].apply(dt_select_opening_mask_type)
     log.info("Silver => Gold (DATATOURISME) : Opening mask ajoutées aux POIs")
     return dt_gdf

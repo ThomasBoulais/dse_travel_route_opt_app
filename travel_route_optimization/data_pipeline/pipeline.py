@@ -60,10 +60,10 @@ def main():
     
 
     log.info("=== Silver => Gold (transformation finale pour utilisation) ====================")
-    
-    log.info("Silver => Gold (MERGE) : Démarrage du pipeline ")
     dt_gdf      = gold.dt_transform_gold()
     osm_gdf     = gold.osm_transform_gold()
+
+    log.info("Silver => Gold (MERGE) : Démarrage du pipeline ")
     gold_gdf    = gold.merge_gold(dt_gdf, osm_gdf)
     
     gold.export_gold(gold_gdf, G_drive, G_walk)

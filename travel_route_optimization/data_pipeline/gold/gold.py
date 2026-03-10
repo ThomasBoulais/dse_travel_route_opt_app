@@ -116,6 +116,11 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
     return gold_gdf
 
 
+# CREATION GRAPHE POUR RL
+
+
+
+
 # EXPORT
 
 def flatten_mask(x):
