@@ -1,0 +1,14 @@
+[
+  {
+    "poi_idx": 855,
+    "poi_name": "Le Lunch",
+    "day": 0,
+    "arrival_minute": 486,
+    "travel_time": 6.611685752868652,
+    "visit_duration": 90.0,
+    "departure_day": 0,
+    "departure_minute": 576,
+    "category": "restauration",
+    "is_accommodation": false
+  }
+]

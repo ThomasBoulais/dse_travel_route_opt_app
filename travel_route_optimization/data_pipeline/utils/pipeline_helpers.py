@@ -182,13 +182,15 @@ def to_geopandas(df: pd.DataFrame) -> gpd.GeoDataFrame:
 def select_visit_type(categories: str) -> str:
     """Attribue le type de visit_duration selon s'il s'agit d'une accomodation ou d'un POI générique"""
     if re.search('accomodation', categories):
-        return 480 # 8h en minutes
-    return 60 # 1h en minutes
+        return 660 # 8h en minutes
+    if re.search('restauration', categories):
+        return 90 # 8h en minutes
+    return 55 # 1h en minutes
 
 
 def add_visit_duration(pois: gpd.GeoDataFrame, src: str) -> gpd.GeoDataFrame:
     pois['visit_duration'] = pois['categories'].apply(select_visit_type)
-    log.info(f"Silver => Gold ("src") : Durées de visite ajoutées aux POIs")
+    log.info(f"Silver => Gold ({src}) : Durées de visite ajoutées aux POIs")
     return pois
 
 # OSM

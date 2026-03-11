@@ -6,9 +6,12 @@
 cache 
 __pycache__
 
-# all the data ingested, transformed and loaded
+# l'ensemble des données du pipeline
 travel_route_optimization/data/*
 
 # setup
 travel_route_optimization.egg-info
 package.pth
+
+# trop volumineux pour github
+mlflow.db

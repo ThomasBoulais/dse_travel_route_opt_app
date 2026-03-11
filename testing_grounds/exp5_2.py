@@ -36,6 +36,7 @@ def select_visit_type(categories: str) -> str:
         return 480 # 8h en minutes
     return 60 # 1h en minutes
 
+
 def add_visit_duration(pois: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     pois['visit_duration'] = pois['categories'].apply(select_visit_type)
     log.info("Silver => Gold (DATATOURISME) : Durées de visite ajoutées aux POIs")

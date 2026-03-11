@@ -129,7 +129,9 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
     neighbors = get_knn_pois(pois)
 
     add_travel_time(G_drive, DRIVE_SPEED)
-
+    
+    log.info(f"Silver => Gold (KNN_GRAPH) : Création du graphe KNN des temps de route entre POIs")
+    
     edges = []
     for i, poi in pois.iterrows():
         u = poi["nearest_node"]
@@ -144,6 +146,13 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
                 "drive_time": w_drive,
             })
     edges_df = pd.DataFrame(edges)
+
+    len_raw_edges_df = len(edges_df)
+    edges_df.dropna(axis=0, inplace=True)
+    edges_df = edges_df[(edges_df['drive_time'] != 'inf') & (edges_df['poi_from'] != edges_df['poi_to'])]
+
+    log.info(f"Silver => Gold (KNN_GRAPH) : {len(edges_df)} arrêtes créées dans le graphe KNN ({len_raw_edges_df} avant suppression des doublons et NA)")
+
     return edges_df
 
 
