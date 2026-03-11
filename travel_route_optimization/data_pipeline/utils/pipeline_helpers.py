@@ -9,7 +9,7 @@ import pandas as pd
 from shapely import wkb
 from sklearn.neighbors import BallTree
 
-from travel_route_optimization.data_pipeline.utils.config import DT_DICT_TYPES_DETAILED, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET, KNN_VALUE, OSM_DICT_TYPES_DETAILED
+from travel_route_optimization.data_pipeline.utils.config import DT_DICT_TYPES_DETAILED, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET, INTEREST_SCORE, KNN_VALUE, OSM_DICT_TYPES_DETAILED
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
@@ -381,6 +381,20 @@ def dt_add_open_hour_mask(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     dt_gdf["opening_mask"] = dt_gdf['categories'].apply(dt_select_opening_mask_type)
     log.info("Silver => Gold (DATATOURISME) : Opening mask ajoutées aux POIs")
     return dt_gdf
+
+
+def extract_categories(cat_str: str):
+    if not isinstance(cat_str, str) or not cat_str.strip():
+        return [""]
+    return [c.strip() for c in cat_str.split("|") if c.strip()]
+
+
+def add_interest_score(row):
+    cats = extract_categories(row["categories"])
+    best = -1.0
+    for c in cats:
+        best = max(best, INTEREST_SCORE.get(c, -1.0))
+    return best
 
 
 # GRAPHE KNN DE TRAINING POUR LE RL

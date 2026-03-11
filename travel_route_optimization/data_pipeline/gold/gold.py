@@ -11,9 +11,9 @@ import osmnx as ox
 from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
-from travel_route_optimization.data_pipeline.bronze.osm import get_pois
-from travel_route_optimization.data_pipeline.utils.config import BBOX_BOTTOM, BBOX_LEFT, BBOX_RIGHT, BBOX_TOP, DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
-from travel_route_optimization.data_pipeline.utils.pipeline_helpers import add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_drive_network, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
+from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.data_pipeline.utils.pipeline_helpers import add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
+from travel_route_optimization.model_training.train_dqn import extract_categories
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -115,9 +115,14 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
     gold_gdf = pd.concat([dt_osm, dt_uniq, osm_uniq])[['name', 'geometry', 'categories', 'types', 'email', 'phone', 
                                                     'website', 'opening_hours', 'opening_mask', 'visit_duration']]
     
+    gold_gdf["interest_score"] = gold_gdf.apply(add_interest_score, axis=1)
+    gold_gdf["main_category"] = gold_gdf["categories"].apply(lambda x: extract_categories(x)[0] if extract_categories(x) else "")
+
     log.info(f"Silver => Gold (MERGE) : {gold_gdf.shape[0]} POIs récupérés après fusion,"
              f" entre {dt_uniq.shape[0]} POIs DATATourisme et {osm_uniq.shape[0]} POIs OSM ({dt_osm.shape[0]} POIs en commun)")
     
+    gold_gdf = gold_gdf.reset_index(drop=True)
+
     return gold_gdf
 
 
@@ -125,6 +130,7 @@ def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDa
 
 def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) -> pd.DataFrame:
     """Génère le graphe de training du RL (K voisins les plus proches (KNN) par POI avec temps de trajet pour chaque arrête)"""
+    pois = pois.reset_index(drop=True)
     pois = nearest_node(pois, G_drive)
     neighbors = get_knn_pois(pois)
 
@@ -148,8 +154,44 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
     edges_df = pd.DataFrame(edges)
 
     len_raw_edges_df = len(edges_df)
-    edges_df.dropna(axis=0, inplace=True)
-    edges_df = edges_df[(edges_df['drive_time'] != 'inf') & (edges_df['poi_from'] != edges_df['poi_to'])]
+
+    edges_df = edges_df.dropna()
+    edges_df = edges_df[edges_df['poi_from'] != edges_df['poi_to']]
+    edges_df['drive_time'] = edges_df['drive_time'].astype(float)
+    edges_df = edges_df[edges_df['drive_time'] < 1e9]
+
+    unique_from = set(edges_df["poi_from"])
+    all_pois = set(range(len(pois)))
+    isolated = all_pois - unique_from
+
+    for poi in isolated:
+        nearest = neighbors[poi][0]
+        u = pois.loc[poi, "nearest_node"]
+        v = pois.loc[nearest, "nearest_node"]
+        w_drive = travel_time(G_drive, u, v)
+
+        edges_df = pd.concat([
+            edges_df,
+            pd.DataFrame([{
+                "poi_from": int(poi),
+                "poi_to": int(nearest),
+                "node_from": u,
+                "node_to": v,
+                "drive_time": w_drive,
+            }])
+        ], ignore_index=True)
+
+    # On inverse les from/to pour obtenir les edges dans l'autre sens et obtenir un graphe symétrique
+    reverse_edges = edges_df.rename(columns={
+        "poi_from": "poi_to",
+        "poi_to": "poi_from",
+        "node_from": "node_to",
+        "node_to": "node_from"
+    })
+
+    edges_df = pd.concat([edges_df, reverse_edges], ignore_index=True)
+    edges_df.drop_duplicates(subset=["poi_from", "poi_to"], inplace=True)
+
 
     log.info(f"Silver => Gold (KNN_GRAPH) : {len(edges_df)} arrêtes créées dans le graphe KNN ({len_raw_edges_df} avant suppression des doublons et NA)")
 

@@ -35,12 +35,27 @@ Les différentes étapes du projet sont à ce jour :
     pip3 install -r requirements.txt
     ```
 
+Puis parmi les actions possibles : 
+
 4. Lancer la pipeline pour récupérer les données
     ```sh
     python3 -m travel_route_optimization.data_pipeline.pipeline
     ```
 
-5. Renseigner les inputs dans XXX et lancer le script d'optimisation
+5. Lancer l'entrainement de RL
+    ```sh
+    python3 -m travel_route_optimization.model_training.train_dqn
+
+    python -m travel_route_optimization.model_training.eval_route <RUN_ID>
+    ```
+
+6. Pour voir les modèles déjà entraînés, installer MLFlow et lancer un serveur
+    ```
+    pip install mlflow
+
+    mlflow server --host 0.0.0.0 --port 5000 --backend-store- file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --default-artifact-root file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --serve-artifacts
+    ```
+
 
 ## Todo du moment
 

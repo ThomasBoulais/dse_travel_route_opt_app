@@ -5,9 +5,10 @@
 # cache & pycache
 cache 
 __pycache__
+*.pyc
 
 # l'ensemble des données du pipeline
-travel_route_optimization/data/*
+travel_route_optimization/data/
 
 # setup
 travel_route_optimization.egg-info
@@ -15,3 +16,15 @@ package.pth
 
 # trop volumineux pour github
 mlflow.db
+
+# MLflow tracking
+mlruns/
+
+# Model artifacts
+models/
+*.pt
+
+# Evaluation outputs
+route.json
+
+testing_grounds/*.csv

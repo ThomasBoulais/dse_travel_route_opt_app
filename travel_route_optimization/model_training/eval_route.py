@@ -6,29 +6,15 @@ import torch
 import mlflow
 import mlflow.pytorch
 import sys
+import pandas as pd
+import geopandas as gpd
 
 from dataclasses import dataclass
 from travel_route_optimization.model_training.env_tdtoptw import TDTOPTWEnv
-from travel_route_optimization.model_training.qnet import QNet
-from travel_route_optimization.model_training.train_dqn import (
-    load_config,
-    build_data,
-)
+from travel_route_optimization.model_training.train_dqn import load_env_train, QNet
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mlflow.set_tracking_uri("http://localhost:5000")
-
-
-def to_python(obj):
-    if isinstance(obj, (np.integer,)):
-        return int(obj)
-    if isinstance(obj, (np.floating,)):
-        return float(obj)
-    if isinstance(obj, (np.ndarray,)):
-        return obj.tolist()
-    if isinstance(obj, (np.bool_)):
-        return bool(obj)
-    return obj
 
 
 @dataclass
@@ -59,7 +45,6 @@ class RouteStep:
         }
 
 
-
 def format_time(day: int, minute: int) -> str:
     h = minute // 60
     m = minute % 60
@@ -78,11 +63,16 @@ def generate_route(env: TDTOPTWEnv, qnet: QNet, pois, main_categories, is_accomm
         s_t = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         with torch.no_grad():
             q_vals = qnet(s_t).squeeze(0).cpu().numpy()
+
         q_vals[~feas] = -1e9
         action_idx = int(np.argmax(q_vals))
 
+        neighbors = env.knn_neighbors[env.current_poi]
+        if action_idx >= len(neighbors):
+            break
+
         current_poi = env.current_poi
-        next_poi = env.neighbor_idx[current_poi, action_idx]
+        next_poi = neighbors[action_idx]
 
         travel_t = env.travel_time[current_poi, next_poi]
         arrival_day, arrival_minute = env._time_to_indices(travel_t)
@@ -114,62 +104,45 @@ def generate_route(env: TDTOPTWEnv, qnet: QNet, pois, main_categories, is_accomm
     return route_steps
 
 
+def load_pois_and_metadata(cfg):
+    pois = gpd.read_parquet(cfg["data"]["pois_geoparquet"]).reset_index(drop=True)
+    main_categories = pois["main_category"].to_numpy()
+    is_accommodation = pois["categories"].apply(
+        lambda s: "accomodation" in s if isinstance(s, str) else False
+    ).to_numpy()
+    return pois, main_categories, is_accommodation
+
+
 def main(run_id: str):
-    cfg = load_config(
-        os.path.join(os.path.dirname(__file__), "config.yaml")
-    )
+    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
 
-    (
-        pois,
-        poi_features,
-        poi_scores,
-        opening_mask,
-        travel_time,
-        neighbor_idx,
-        main_categories,
-        is_accommodation,
-        visit_durations,
-    ) = build_data(cfg)
+    with open(config_path, "r") as f:
+        cfg = yaml.safe_load(f)
 
-    env_cfg = cfg["env"]
-    reward_cfg = cfg["reward"]
-    env = TDTOPTWEnv(
-        poi_features=poi_features,
-        poi_scores=poi_scores,
-        opening_mask=opening_mask,
-        travel_time=travel_time,
-        neighbor_idx=neighbor_idx,
-        main_categories=main_categories,
-        is_accommodation=is_accommodation,
-        visit_durations=visit_durations,
-        start_poi_idx=env_cfg["start_poi_idx"],
-        start_day=env_cfg["start_day"],
-        day_start_minute=env_cfg["day_start_minute"],
-        day_end_minute=env_cfg["day_end_minute"],
-        num_days=env_cfg["num_days"],
-        max_steps=env_cfg["max_steps"],
-        reward_cfg=reward_cfg,
-    )
+    env = load_env_train(config_path)
+    pois, main_categories, is_accommodation = load_pois_and_metadata(cfg)
 
     state_dim = env._get_state().shape[0]
     n_actions = env.max_actions
 
-    model_uri = f"runs:/{run_id}/model"
-    qnet = mlflow.pytorch.load_model(model_uri).to(device)
+    qnet = QNet(state_dim, n_actions).to(device)
+    model_uri = f"runs:/{run_id}/tdtoptw_dqn.pt"
+    local_path = mlflow.artifacts.download_artifacts(model_uri)
+    state_dict = torch.load(local_path, map_location=device)
+    qnet.load_state_dict(state_dict)
     qnet.eval()
+
 
     route = generate_route(env, qnet, pois, main_categories, is_accommodation)
 
     route_dict = [step.to_dict() for step in route]
-    
+
     with open("route.json", "w") as f:
         json.dump(route_dict, f, indent=2)
 
     with mlflow.start_run(run_name=f"eval_{run_id}"):
         mlflow.log_param("evaluated_run", run_id)
         mlflow.log_artifact("route.json")
-
-
 
     for step in route:
         print(
@@ -184,6 +157,5 @@ def main(run_id: str):
 
 
 if __name__ == "__main__":
-    # replace with a real run_id from MLflow UI => `python -m travel_route_optimization_training.eval_route <RUN ID>`
     example_run_id = sys.argv[1]
     main(example_run_id)

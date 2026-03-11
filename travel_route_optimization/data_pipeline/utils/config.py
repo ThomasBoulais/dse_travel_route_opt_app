@@ -48,8 +48,8 @@ DT_SILVER_CSV               = SILVER_DIR / "datatourisme_pois.csv" # debug/explo
 
 
 # GOLD
-GOLD_POIS_GEOPARQUET        = GOLD_DIR / "gold_pois.geoparquet"
-GOLD_POIS_CSV               = GOLD_DIR / "gold_pois.csv" # debug/exploration
+GOLD_POIS_GEOPARQUET        = GOLD_DIR / "pois.geoparquet"
+GOLD_POIS_CSV               = GOLD_DIR / "pois.csv" # debug/exploration
 
 GOLD_DRIVE_GRAPHML          = GOLD_DIR / "drive_network.graphml"
 GOLD_WALK_GRAPHML           = GOLD_DIR / "walk_network.graphml"
@@ -57,6 +57,18 @@ KNN_DRIVE_TIME_GRAPH_DF     = GOLD_DIR / "knn_drive_time_graph_df.csv"
 
 DRIVE_SPEED     = 40 # km/h
 KNN_VALUE       = 25 # le nombre de voisins les plus proches à considérer par POI
+
+INTEREST_SCORE = {
+    "leisure & entertainment": 0.6,
+    "cultural, historical & religious events or sites": 0.8,
+    "parks, garden & nature": 0.5,
+    "sportive": 0.2,
+    "restauration": 0.3,
+    "accomodation": 0.25,
+    "transport & mobility": -0.4,
+    "utilitaries": -0.4,
+    "": -1.0,
+}
 
 DT_DICT_TYPES_DETAILED = {
     'LeisureComplex':           'leisure & entertainment',
