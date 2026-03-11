@@ -1,0 +1,86 @@
+[
+  {
+    "poi_idx": 183,
+    "poi_name": "Halle Dard\u00e9 De Lod\u00e8ve",
+    "day": 0,
+    "arrival_minute": 546,
+    "travel_time": 6.831684112548828,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 601,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 788,
+    "poi_name": "Visite\u00a0Guid\u00e9e De L'Exposition",
+    "day": 0,
+    "arrival_minute": 601,
+    "travel_time": 0.0,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 656,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 156,
+    "poi_name": "Ginkgo Biloba",
+    "day": 0,
+    "arrival_minute": 656,
+    "travel_time": 0.3809761703014374,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 711,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 449,
+    "poi_name": "La Muse'Broc",
+    "day": 0,
+    "arrival_minute": 743,
+    "travel_time": 32.914451599121094,
+    "visit_duration": 90.0,
+    "departure_day": 0,
+    "departure_minute": 833,
+    "category": "restauration",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 155,
+    "poi_name": "Cath\u00e9drale Saint-Fulcran",
+    "day": 0,
+    "arrival_minute": 858,
+    "travel_time": 25.881113052368164,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 913,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 747,
+    "poi_name": "Festival R\u00e9surgence 2026",
+    "day": 0,
+    "arrival_minute": 946,
+    "travel_time": 33.491519927978516,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 1001,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 487,
+    "poi_name": "Aire De Stationnement Camping-Car De Lod\u00e8ve",
+    "day": 0,
+    "arrival_minute": 1036,
+    "travel_time": 35.33978271484375,
+    "visit_duration": 660.0,
+    "departure_day": 1,
+    "departure_minute": 256,
+    "category": "accomodation",
+    "is_accommodation": true
+  }
+]

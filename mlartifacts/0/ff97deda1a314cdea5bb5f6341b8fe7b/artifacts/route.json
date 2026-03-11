@@ -1,0 +1,38 @@
+[
+  {
+    "poi_idx": 183,
+    "poi_name": "Halle Dard\u00e9 De Lod\u00e8ve",
+    "day": 0,
+    "arrival_minute": 486,
+    "travel_time": 6.831684112548828,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 541,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 727,
+    "poi_name": "Atelier De R\u00e9paration V\u00e9lo",
+    "day": 0,
+    "arrival_minute": 541,
+    "travel_time": 0.8723316788673401,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 596,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  },
+  {
+    "poi_idx": 788,
+    "poi_name": "Visite\u00a0Guid\u00e9e De L'Exposition",
+    "day": 0,
+    "arrival_minute": 635,
+    "travel_time": 39.0511360168457,
+    "visit_duration": 55.0,
+    "departure_day": 0,
+    "departure_minute": 690,
+    "category": "cultural, historical & religious events or sites",
+    "is_accommodation": false
+  }
+]

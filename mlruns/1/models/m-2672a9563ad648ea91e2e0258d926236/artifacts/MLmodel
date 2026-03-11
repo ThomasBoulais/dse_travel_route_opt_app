@@ -1,0 +1,23 @@
+artifact_path: file:C:/Users/thoma/Documents/python_projects/dse_travel_route_opt_app/mlruns/1/models/m-2672a9563ad648ea91e2e0258d926236/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.14.3
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.10.0+cpu
+mlflow_version: 3.10.1
+model_id: m-2672a9563ad648ea91e2e0258d926236
+model_size_bytes: 328089
+model_uuid: m-2672a9563ad648ea91e2e0258d926236
+prompts: null
+run_id: e5f388308de946638a5fa277fab325e5
+utc_time_created: '2026-03-11 00:06:41.770934'

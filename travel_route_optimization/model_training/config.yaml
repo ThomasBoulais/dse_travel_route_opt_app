@@ -1,0 +1,34 @@
+experiment_name: "tdtoptw_dqn"
+run_name: "qsa_multiday_v1"
+
+data:
+  pois_geoparquet: "GOLD_POIS_GEOPARQUET"
+  knn_drive_time_graph_df: "KNN_DRIVE_TIME_GRAPH_DF"
+
+env:
+  start_poi_idx: 0
+  start_day: 0
+  day_start_minute: 480 # 8 * 60
+  day_end_minute: 1380  # 23 * 60
+  num_days: 3
+  max_steps: 150
+
+dqn:
+  hidden_dim: 256
+  gamma: 0.99
+  lr: 0.001
+  batch_size: 64
+  replay_size: 100000
+  num_episodes: 4000
+  epsilon_start: 1.0
+  epsilon_end: 0.4
+  epsilon_decay_episodes: 6000
+
+reward:
+  travel_penalty: -0.001
+  distance_penalty: -0.1
+  diversity_bonus: 0.2
+  time_usage_bonus: 0.01
+  step_bonus: 5.0
+  invalid_penalty: -0.1
+  night_penalty: -0.1

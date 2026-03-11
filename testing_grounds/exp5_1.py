@@ -16,7 +16,7 @@ osm_gdf = to_geopandas(osm_df)
 
 DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 INT_TYPE = np.uint8
-INT_TYPE = np.int16
+# INT_TYPE = np.int16
 
 
 # -----------------------------
