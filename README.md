@@ -7,8 +7,8 @@ Les différentes étapes du projet sont à ce jour :
 1. Pipeline multi-sources (OSM & DATATourisme) des POIs et réseaux de routes ✅
 2. Visualisation des POIs & réseaux de route ✅
 3. Premier jet d'optimisation d'un itinéraire en RL ✅
-4. Ajout de versioning (MLFlow) + Passage en API (fastapi) 👀
-5. Architecture complète de la donnée avec contraintes utilisateur 😴
+4. Ajout de versioning (MLFlow) + Passage en API (fastapi) ✅
+5. Architecture complète de la donnée avec contraintes utilisateur 👀
 6. UX/UI 😴
 7. Branchement Front-Back 😴
 8. CICD 😴
@@ -96,10 +96,11 @@ Puis parmi les actions possibles :
 - ~Vérifier que les geometry DATATourisme sont des points et pas des polygones~
 - ~Retaper l'archi du projet pour qu'il soit clair~
 - ~Faire l'enrichissement des données OSM & DATATourisme pour passer en Gold~
-- Intégrer la logique de création de route (Algorithme de Dijkstra, TDTOPTW, peut-être démarrer par un TSP ou OP pour roter du sang direct)
-- Ajouter une brique ML (piste de chercher statistiquement le prochain noeud qui a le plus de sens dans itinéraire en cours de construction)
+- ~Intégrer la logique de création de route (Algorithme de Dijkstra, TDTOPTW, peut-être démarrer par un TSP ou OP pour roter du sang direct) + Ajouter une brique ML (piste de chercher statistiquement le prochain noeud qui a le plus de sens dans itinéraire en cours de construction)~ => ~Mettre en place un RL pour déterminer la meilleure route~
+- ~Exposer le modèle via API~
 - Découvrir Streamlit
 - Réfléchir à une interface minimaliste mais fonctionnelle
+- Containeriser l'application
 - Mettre en place une pipeline CICD pour avoir une couverture de code 
 
 ## Conseils de Dan
