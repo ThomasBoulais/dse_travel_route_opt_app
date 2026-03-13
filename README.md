@@ -79,18 +79,10 @@ Puis parmi les actions possibles :
 
 ## Todo du moment
 
-1. Enrichir les données OSM + DATATourisme dans gold 
-    11. Construire une structure commune
-    12. Fusionner les points commun
-
-11. Construire une structure commune
-- name                  : nom du POI (noms vides dans OSM à investiguer)
-- geometry              : géoloc => clef approx. d'égalité entre les src
-- category              : tag de référence pour les utilisateurs (culture, sport, etc.)
-- type                  : à rationnaliser => clef approx. d'égalité entre les src
-- opening hours         : gérer les vides
-- address               : pour l'export utilisateur
-- email, phone, website : 
+- Découvrir Streamlit et ses fonctionnalités
+- Penser une UX avec prise en charge des inputs User
+- Prendre en main Folium / voir si compat possible avec Streamlit & faire affichage clair d'un itinéraire
+- (modifier RL pour améliorer le bail et/ou rendre les profits des différentes catégories modifiables)
 
 ## RoadMap
 - ~Vérifier que les geometry DATATourisme sont des points et pas des polygones~
