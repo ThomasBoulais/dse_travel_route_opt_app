@@ -1,22 +1,20 @@
-import os
-import json
+from pathlib import Path 
 import yaml
-import numpy as np
 import torch
 import mlflow
-import mlflow.pytorch
-import sys
-import pandas as pd
+import numpy as np
 import geopandas as gpd
 
 from dataclasses import dataclass
-from travel_route_optimization.model_training.env_tdtoptw import TDTOPTWEnv
 from travel_route_optimization.model_training.train_dqn import load_env_train, QNet
+from travel_route_optimization.inference.env_v1 import TDTOPTWEnv
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mlflow.set_tracking_uri("http://localhost:5000")
 
 
+# ---------------------------------------------------------
+# Data class for a single itinerary step
+# ---------------------------------------------------------
 @dataclass
 class RouteStep:
     poi_idx: int
@@ -45,48 +43,21 @@ class RouteStep:
         }
 
 
-def format_time(day: int, minute: int) -> str:
-    h = minute // 60
-    m = minute % 60
-    return f"Day {day} – {h:02d}:{m:02d}"
-
-def generate_itinerary(run_id: str, config_path: str, start_poi: int, start_day: int, num_days: int):
-    # Load config
-    with open(config_path, "r") as f:
-        cfg = yaml.safe_load(f)
-
-    # Load environment
-    env = load_env_train(config_path)
-    env.start_poi_idx = start_poi
-    env.start_day = start_day
-    env.num_days = num_days
-
-    # Load POI metadata
+# ---------------------------------------------------------
+# Load POI metadata (names, categories, accommodation flag)
+# ---------------------------------------------------------
+def load_pois_and_metadata(cfg):
     pois = gpd.read_parquet(cfg["data"]["pois_geoparquet"]).reset_index(drop=True)
     main_categories = pois["main_category"].to_numpy()
     is_accommodation = pois["categories"].apply(
         lambda s: "accomodation" in s if isinstance(s, str) else False
     ).to_numpy()
-
-    # Build model architecture
-    state_dim = env._get_state().shape[0]
-    n_actions = env.max_actions
-    qnet = QNet(state_dim, n_actions).to(device)
-
-    # Load model weights from MLflow
-    model_uri = f"runs:/{run_id}/tdtoptw_dqn.pt"
-    local_path = mlflow.artifacts.download_artifacts(model_uri)
-    state_dict = torch.load(local_path, map_location=device)
-    qnet.load_state_dict(state_dict)
-    qnet.eval()
-
-    # Generate route
-    route = generate_route(env, qnet, pois, main_categories, is_accommodation)
-
-    # Convert to JSON-serializable dict
-    return [step.to_dict() for step in route]
+    return pois, main_categories, is_accommodation
 
 
+# ---------------------------------------------------------
+# Greedy route generation (same logic as eval_route.py)
+# ---------------------------------------------------------
 def generate_route(env: TDTOPTWEnv, qnet: QNet, pois, main_categories, is_accommodation, max_steps=150):
     state = env.reset()
     route_steps = []
@@ -140,56 +111,44 @@ def generate_route(env: TDTOPTWEnv, qnet: QNet, pois, main_categories, is_accomm
     return route_steps
 
 
-def load_pois_and_metadata(cfg):
-    pois = gpd.read_parquet(cfg["data"]["pois_geoparquet"]).reset_index(drop=True)
-    main_categories = pois["main_category"].to_numpy()
-    is_accommodation = pois["categories"].apply(
-        lambda s: "accomodation" in s if isinstance(s, str) else False
-    ).to_numpy()
-    return pois, main_categories, is_accommodation
+# ---------------------------------------------------------
+# Main function used by FastAPI
+# ---------------------------------------------------------
+def generate_itinerary(run_id: str, start_poi: int, start_day: int, num_days: int, config_path: str):
+    config_path = Path(config_path)
 
-
-def main(run_id: str):
-    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
-
+    # If the path is not absolute, resolve it relative to this file
+    if not config_path.is_absolute():
+        base_dir = Path(__file__).parent
+        config_path = (base_dir / ".." / "model_training" / config_path).resolve()
+    
+    # Load config
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
 
+    # Load environment
     env = load_env_train(config_path)
+    env.start_poi_idx = start_poi
+    env.start_day = start_day
+    env.num_days = num_days
+
+    # Load POI metadata
     pois, main_categories, is_accommodation = load_pois_and_metadata(cfg)
 
+    # Build model architecture
     state_dim = env._get_state().shape[0]
     n_actions = env.max_actions
-
     qnet = QNet(state_dim, n_actions).to(device)
-    local_path = mlflow.artifacts.download_artifacts(f"runs:/{run_id}/tdtoptw_dqn.pt")
+
+    # Load model weights from MLflow
+    model_uri = f"runs:/{run_id}/tdtoptw_dqn.pt"
+    local_path = mlflow.artifacts.download_artifacts(model_uri)
     state_dict = torch.load(local_path, map_location=device)
     qnet.load_state_dict(state_dict)
     qnet.eval()
 
+    # Generate route
     route = generate_route(env, qnet, pois, main_categories, is_accommodation)
 
-    route_dict = [step.to_dict() for step in route]
-
-    with open("route.json", "w") as f:
-        json.dump(route_dict, f, indent=2)
-
-    with mlflow.start_run(run_name=f"eval_{run_id}"):
-        mlflow.log_param("evaluated_run", run_id)
-        mlflow.log_artifact("route.json")
-
-    for step in route:
-        print(
-            f"POI: {step.poi_name} (#{step.poi_idx}) [{step.category}] "
-            f"{'(ACCOM)' if step.is_accommodation else ''}"
-        )
-        print(f"  Arrive:   {format_time(step.day, step.arrival_minute)}")
-        print(f"  Travel:   {step.travel_time:.1f} min")
-        print(f"  Visit:    {step.visit_duration:.1f} min")
-        print(f"  Depart:   {format_time(step.departure_day, step.departure_minute)}")
-        print()
-
-
-if __name__ == "__main__":
-    example_run_id = sys.argv[1]
-    main(example_run_id)
+    # Return JSON-serializable itinerary
+    return [step.to_dict() for step in route]

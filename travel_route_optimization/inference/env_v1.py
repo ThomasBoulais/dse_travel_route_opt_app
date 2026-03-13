@@ -25,6 +25,7 @@ class TDTOPTWEnv:
         self.opening_mask = opening_mask
         self.travel_time = travel_time
 
+        # KNN neighbors: list of lists, neighbors[i] = [j1, j2, ...]
         self.knn_neighbors = knn_neighbors
         self.max_actions = max(len(n) for n in knn_neighbors)
 
@@ -136,7 +137,11 @@ class TDTOPTWEnv:
 
             mask[a] = True
 
-        return mask
+        # PAD to max_actions
+        padded = np.zeros(self.max_actions, dtype=bool)
+        padded[:K] = mask
+        return padded
+
 
     def step(self, action_idx: int) -> Tuple[np.ndarray, float, bool, Dict]:
         feas_mask = self._feasible_actions_mask()
@@ -148,23 +153,23 @@ class TDTOPTWEnv:
             return self._get_state(), self.reward_cfg["invalid_penalty"], True, {"reason": "infeasible"}
 
         prev_poi = self.current_poi
-        next_poi = self.knn_neighbors[self.current_poi][action_idx]  # <-- FIXED
+        neighbors = self.knn_neighbors[self.current_poi]
+        if action_idx >= len(neighbors):
+            return self._get_state(), self.reward_cfg["invalid_penalty"], True, {"reason": "invalid_action"}
+        next_poi = neighbors[action_idx]
 
         tt = self.travel_time[prev_poi, next_poi]
         visit_dur = self.visit_durations[next_poi]
         total = tt + visit_dur
 
-        # Detect day change
         if self.current_day != self.last_day:
             self.accommodation_used_today = False
             self.lunch_taken_today = False
             self.last_day = self.current_day
 
-        # Accommodation logic
         if self.is_accommodation[next_poi]:
             self.accommodation_used_today = True
 
-        # Lunch logic
         if 660 <= self.current_minute <= 900 and self.main_categories[next_poi] == "restauration":
             self.lunch_taken_today = True
 
@@ -182,7 +187,6 @@ class TDTOPTWEnv:
         if new_category:
             self.visited_categories.add(cat)
 
-        # reward shaping
         r_cfg = self.reward_cfg
         interest = float(self.poi_scores[next_poi])
         travel_penalty = r_cfg["travel_penalty"] * tt
@@ -211,10 +215,10 @@ class TDTOPTWEnv:
         if dist > 0.01:
             reward += 0.8
 
-        if self.current_minute > 12*60:
+        if self.current_minute > 12 * 60:
             reward += 0.8
 
-        if self.is_accommodation[self.current_poi] and self.current_minute > 18*60:
+        if self.is_accommodation[self.current_poi] and self.current_minute > 18 * 60:
             reward += 2.0
 
         done = False

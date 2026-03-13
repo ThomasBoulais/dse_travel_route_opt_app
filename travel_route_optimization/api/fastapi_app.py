@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from travel_route_optimization.inference.evaluator import generate_itinerary
+from travel_route_optimization.inference.generate_itinerary import generate_itinerary
 
 app = FastAPI(
     title="Travel Route Optimization API",
@@ -18,7 +18,7 @@ class ItineraryRequest(BaseModel):
 @app.post("/itinerary")
 def itinerary(request: ItineraryRequest):
     result = generate_itinerary(
-        model_name=request.model_name,
+        run_id=request.model_name,
         start_poi=request.start_poi,
         start_day=request.start_day,
         num_days=request.num_days,

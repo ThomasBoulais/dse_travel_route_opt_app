@@ -6,8 +6,8 @@ Le projet a pour vocation de proposer l'optimisation d'un itinéraire de voyage 
 Les différentes étapes du projet sont à ce jour : 
 1. Pipeline multi-sources (OSM & DATATourisme) des POIs et réseaux de routes ✅
 2. Visualisation des POIs & réseaux de route ✅
-3. Premier jet d'optimisation d'un itinéraire 👀
-4. Ajout d'une brique de ML dans l'optimisation + passage en API 😴
+3. Premier jet d'optimisation d'un itinéraire en RL ✅
+4. Ajout de versioning (MLFlow) + Passage en API (fastapi) 👀
 5. Architecture complète de la donnée avec contraintes utilisateur 😴
 6. UX/UI 😴
 7. Branchement Front-Back 😴
@@ -55,6 +55,26 @@ Puis parmi les actions possibles :
 
     mlflow server --host 0.0.0.0 --port 5000 --backend-store- file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --default-artifact-root file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --serve-artifacts
     ```
+
+7. Pour accéder au modèle, lancer un serveur UVICORN
+    ```
+    uvicorn travel_route_optimization.api.fastapi_app:app --reload
+    ```
+
+    Then access fastapi with `http://localhost:8000/docs` and try out itinerary or in shell:
+    ```
+    curl -X 'POST' \
+    'http://localhost:8000/itinerary' \
+    -H 'accept: application/json' \
+    -H 'Content-Type: application/json' \
+    -d '{
+        "start_poi": 0,
+        "start_day": 0,
+        "num_days": 3,
+        "model_name": "4287957a48224b1c97cbf3e610c6aaa0",
+        "config_path": "config.yaml"
+        }'
+```
 
 
 ## Todo du moment
