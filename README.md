@@ -74,7 +74,7 @@ Puis parmi les actions possibles :
         "model_name": "4287957a48224b1c97cbf3e610c6aaa0",
         "config_path": "config.yaml"
         }'
-```
+    ```
 
 
 ## Todo du moment
