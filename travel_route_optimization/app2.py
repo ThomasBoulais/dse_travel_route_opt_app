@@ -4,11 +4,10 @@ import streamlit as st
 import geopandas as gpd
 import folium
 from streamlit_folium import st_folium
-import osmnx as ox
 import requests
 import folium.plugins as plugins
 
-from travel_route_optimization.data_pipeline.utils.config import GOLD_POIS_GEOPARQUET, SILVER_DRIVE_GRAPHML
+from travel_route_optimization.data_pipeline.utils.config import GOLD_POIS_GEOPARQUET
 
 
 st.set_page_config(
@@ -72,12 +71,21 @@ try:
     i = 0
     for _, row in pois_filtered.iterrows():
         i += 1
-        name = str(row.get("name", "Unknown"))
+        name = row.get("name", "Unknown")
         category = row.get("main_category") or "?"
+        oh = row.get('opening_hours')
+        em = row.get('email')
+        te = row.get('telephone')
+        ws = row.get('website')
 
         folium.Marker(
             location=[row.geometry.y, row.geometry.x],
-            popup=folium.Popup(f"<b>{i}. {name}</b><br>{category}", max_width=200),
+            popup=folium.Popup(f"<h4>{i}. {name}</h4><ul>\
+                                    <li><b>Catégorie:</b> {category}</li>\
+                                    <li><b>Horaires:</b> {oh}</li>\
+                                    <li><b>Email:</b> {em}</li>\
+                                    <li><b>Téléphone:</b> {te}</li>\
+                                    <li><b>Website:</b> {ws}</li></ul>", max_width=350),
             tooltip=f"{i}. {name} ({category})",
             icon=plugins.BeautifyIcon(
                                 icon="arrow-down", icon_shape="marker",
@@ -100,15 +108,7 @@ with col1:
 with col2:
     # st.write(l_poi_idx)
     i = 0
-    for poi in pois_filtered.iterrows():
+    for row in st.session_state.x:
         i += 1
-        res = {
-            'Ordre de passage': i,
-            'Nom': str(poi[1].get('name')),
-            'Catégorie': poi[1].get('main_category'),
-            'Heures d\'ouverture': poi[1].get('opening_hours'),
-            'Email': poi[1].get('email'),
-            'Téléphone': poi[1].get('telephone'),
-            'Website': poi[1].get('website'),
-        }
-        st.table(res, border="horizontal")
+        st.write(row)
+        # st.table(row, border="horizontal")
