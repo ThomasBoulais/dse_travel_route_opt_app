@@ -53,7 +53,7 @@ Puis parmi les actions possibles :
     ```
     pip install mlflow
 
-    mlflow server --host 0.0.0.0 --port 5000 --backend-store- file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --default-artifact-root file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --serve-artifacts
+    mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --default-artifact-root file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --serve-artifacts
     ```
 
 7. Pour accéder au modèle, lancer un serveur UVICORN
