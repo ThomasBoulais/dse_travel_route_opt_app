@@ -7,7 +7,7 @@ import logging
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
-from src.utils.pipeline_helpers import parse_poi
+from src.data_pipeline.utils.pipeline_helpers import parse_poi
 # from src.utils.config import DEFAULT_CRS, DT_SILVER_CSV, DT_SILVER_GEOPARQUET
 from src.common.config_loader import load_config
 

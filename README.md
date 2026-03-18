@@ -101,8 +101,8 @@ Puis parmi les actions possibles :
 - ~Faire l'enrichissement des données OSM & DATATourisme pour passer en Gold~
 - ~Intégrer la logique de création de route (Algorithme de Dijkstra, TDTOPTW, peut-être démarrer par un TSP ou OP pour roter du sang direct) + Ajouter une brique ML (piste de chercher statistiquement le prochain noeud qui a le plus de sens dans itinéraire en cours de construction)~ => ~Mettre en place un RL pour déterminer la meilleure route~
 - ~Exposer le modèle via API~
-- Découvrir Streamlit
-- Réfléchir à une interface minimaliste mais fonctionnelle
+- ~Découvrir Streamlit~
+- ~Réfléchir à une interface minimaliste mais fonctionnelle~
 - Containeriser l'application
 - Mettre en place une pipeline CICD pour avoir une couverture de code 
 

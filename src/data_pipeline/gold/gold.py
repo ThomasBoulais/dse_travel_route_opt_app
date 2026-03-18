@@ -12,7 +12,7 @@ from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
 # from src.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
-from src.utils.pipeline_helpers import extract_categories, add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
+from src.data_pipeline.utils.pipeline_helpers import extract_categories, add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
 from src.common.config_loader import load_config
 
 cfg = load_config()
