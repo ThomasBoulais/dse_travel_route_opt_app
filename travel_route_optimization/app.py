@@ -27,10 +27,8 @@ st.markdown("Vision des POIs & routes disponibles pour des itinéraires de voyag
 @st.cache_data
 def load_pois():
     pois = gpd.read_parquet(GOLD_POIS_GEOPARQUET)
-    st.table(pois[pois['name'].isin(["Les P'Tits Banquets", "Eden - Cie Jaleo", "Table d'orientation - Belvédère de la Ramasse", "L'Escampette"])])
     pois = pois.to_crs(DEFAULT_CRS)
-    st.table(pois[pois['name'].isin(["Les P'Tits Banquets", "Eden - Cie Jaleo", "Table d'orientation - Belvédère de la Ramasse", "L'Escampette"])])
-    
+    # st.table(pois[pois.index==0])
     return pois.to_crs(DEFAULT_CRS)
 
 
@@ -49,14 +47,14 @@ G = load_drive_graph()
 st.sidebar.header("Filtres")
 
 nb_jour = st.sidebar.text_input("Nb jours", value="3")
-start_poi = st.sidebar.text_input("ID start POI", value="0")
+start_poi = st.sidebar.text_input("ID start POI", value="100")
 start_day = st.sidebar.text_input("Jour de départ (0 = lundi)", value="0")
 
 request_body = {
     "start_poi": int(start_poi),
     "start_day": int(start_day),
     "num_days": int(nb_jour),
-    "model_name": "452facbee15240638fa590ca7c37698c",
+    "model_name": "tdtoptw_dqn",
     "config_path": "config.yaml",
 }
 
@@ -69,17 +67,17 @@ if st.sidebar.button("Générer Itinéraire !", type="primary"):
     st.session_state.itinerary = json.loads(x.text)
 
 itinerary = st.session_state.itinerary
-st.table(itinerary)
+# st.table(itinerary)
 
 # ----------------- FILTER POIS -----------------
-l_poi_idx = [item["poi_idx"] for item in itinerary]
-st.write(l_poi_idx)
+l_poi_idx = [int(start_poi)] + [item["poi_idx"] for item in itinerary]
+# st.write(l_poi_idx)
 pois_filtered = pois.loc[pois.index.isin(l_poi_idx)].copy()
-st.table(pois_filtered)
-st.table(pois[pois['name'].isin(["Les P'Tits Banquets", "Eden - Cie Jaleo", "Table d'orientation - Belvédère de la Ramasse", "L'Escampette"])])
+# st.table(pois_filtered)
 
 # Garde l'ordre d'itinéraire des POIs
 order_map = {poi["poi_idx"]: i for i, poi in enumerate(itinerary)}
+order_map[int(start_poi)] = 0
 pois_filtered["order"] = pois_filtered.index.map(order_map)
 pois_filtered = pois_filtered.sort_values("order")
 
@@ -96,18 +94,18 @@ try:
 
     # ---- POI MARKERS ----
     poi_layer = folium.FeatureGroup(name="POIs", show=True)
-    for i, (_, row) in enumerate(pois_filtered.iterrows(), start=1):
-        name = row.get("name", "Unknown")
+    for i, (_, row) in enumerate(pois_filtered.iterrows(), start=0):
+        name = row.get("name", "None")
         category = row.get("main_category") or "?"
-        oh = row.get("opening_hours", "")
-        em = row.get("email", "")
-        te = row.get("telephone", "")
-        ws = row.get("website", "")
+        oh = row.get("opening_hours", "None")
+        em = row.get("email", "None")
+        te = row.get("telephone", "None")
+        ws = row.get("website", "None")
 
         folium.Marker(
             location=[row.geometry.y, row.geometry.x],
             popup=folium.Popup(
-                f"<h4>{i}. {_} {name}</h4><ul>"
+                f"<h4>{i}. {name}</h4><ul>"
                 f"<li><b>Catégorie:</b> {category}</li>"
                 f"<li><b>Horaires:</b> {oh}</li>"
                 f"<li><b>Email:</b> {em}</li>"
@@ -181,13 +179,19 @@ with col1:
 
 with col2:
     st.subheader("Itinéraire brut")
+    st.markdown(f"""**Étape 0**  
+ | Nom | **{pois_filtered.loc[int(start_poi)]['name']}**  
+ | :-- | :--
+""")
     for i, row in enumerate(itinerary, start=1):
         st.markdown(f"**Étape {i}**")
         # st.write(row)
-        st.markdown(f"""{row}
+        st.markdown(f"""
  | Nom | **{row['poi_name']}**  
  | :-- | :--
- | Temps de trajet | **{int(row['travel_time']/60)}h {int(row['travel_time']%60)}m**  
+ | Temps de trajet (voiture) | **{int(row['travel_time']/60)}h {int(row['travel_time']%60)}m**  
  | Heure d'arrivée | **{int(row['arrival_minute']/60)}h {int(row['arrival_minute']%60)}m**  
  | Durée recommandée | **{int(row['visit_duration']/60)}h {int(row['visit_duration']%60)}m**
 """)
+
+
