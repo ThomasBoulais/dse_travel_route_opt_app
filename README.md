@@ -66,7 +66,7 @@ Puis parmi les actions possibles :
     ⚠️ Il faut qu'un modèle soit en production afin d'y avoir accès via fastapi (possible via UX MLFlow)
     </div>
 
-7. Pour accéder au modèle, lancer un serveur UVICORN
+7. Pour accéder au modèle via fastapi, lancer un serveur UVICORN
     ```
     uvicorn travel_route_optimization.api.fastapi_app:app --reload
     ```
@@ -86,6 +86,7 @@ Puis parmi les actions possibles :
         }'
     ```
 
+8. 
 
 ## Todo du moment
 

@@ -9,7 +9,10 @@ import pandas as pd
 from shapely import wkb
 from sklearn.neighbors import BallTree
 
-from travel_route_optimization.utils.config import DT_DICT_TYPES_DETAILED, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET, INTEREST_SCORE, KNN_VALUE, OSM_DICT_TYPES_DETAILED
+# from src.utils.config import DT_DICT_TYPES_DETAILED, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET, INTEREST_SCORE, KNN_VALUE, OSM_DICT_TYPES_DETAILED
+from src.common.config_loader import load_config
+
+cfg = load_config()
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
@@ -210,7 +213,7 @@ def osm_get_types(tourism: str|None, amenity: str|None, historic: str|None, leis
 def osm_add_category(osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Affecte les catégories correspondantes aux types des POIs (OSM)"""
     osm_gdf['types'] = osm_gdf.apply(lambda x: osm_get_types(x.tourism, x.amenity, x.historic, x.leisure, x.natural), axis=1)
-    osm_gdf['categories'] = osm_gdf['types'].apply(summarize_types, args=(OSM_DICT_TYPES_DETAILED,))
+    osm_gdf['categories'] = osm_gdf['types'].apply(summarize_types, args=(cfg.osm_types_detailed,))
     log.info("Silver => Gold (OSM) : Catégories ajoutées aux POIs")
     return osm_gdf
 
@@ -362,7 +365,7 @@ def summarize_types(types: str, dict_types_detailed: dict) -> str:
 
 def dt_add_category(dt_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Affecte les catégories correspondantes aux types des POIs (DATATourisme)"""
-    dt_gdf['categories'] = dt_gdf['types'].apply(summarize_types, args=(DT_DICT_TYPES_DETAILED,))
+    dt_gdf['categories'] = dt_gdf['types'].apply(summarize_types, args=(cfg.dt_types_detailed,))
     log.info("Silver => Gold (DATATOURISME) : Catégories ajoutées aux POIs")
     return dt_gdf
 
@@ -393,7 +396,7 @@ def add_interest_score(row):
     cats = extract_categories(row["categories"])
     best = -1.0
     for c in cats:
-        best = max(best, INTEREST_SCORE.get(c, -1.0))
+        best = max(best, cfg.interest_score.get(c, -1.0))
     return best
 
 
@@ -402,7 +405,7 @@ def add_interest_score(row):
 def get_drive_network(left: float, bottom: float, right: float, top: float) -> gpd.GeoDataFrame:
     """Récupère le graphml du réseau de route"""
     ox.settings.default_crs = "EPSG:4326"
-    G_drive = ox.load_graphml(GOLD_DRIVE_GRAPHML)
+    G_drive = ox.load_graphml(cfg.gold.drive_graphml)
     G_drive = ox.truncate.truncate_graph_bbox(G_drive, bbox=[left, bottom, right, top])
     G_drive = ox.project_graph(G_drive)
     return G_drive
@@ -410,7 +413,7 @@ def get_drive_network(left: float, bottom: float, right: float, top: float) -> g
 
 def get_pois(G_drive: gpd.GeoDataFrame, left: float, bottom: float, right: float, top: float) -> gpd.GeoDataFrame:
     """Récupère le GeoDataFrame des POIs dans le même CRS que G_drive"""
-    pois = gpd.read_parquet(GOLD_POIS_GEOPARQUET)
+    pois = gpd.read_parquet(cfg.gold.pois_geoparquet)
     pois = pois.to_crs("EPSG:4326")
     pois = pois.cx[left:right, bottom:top].reset_index(drop=True)
     pois = pois.to_crs(G_drive.graph["crs"])
@@ -429,7 +432,7 @@ def get_knn_pois(pois: gpd.GeoDataFrame) -> list[int]:
     coords = np.vstack([pois.geometry.y.values, pois.geometry.x.values]).T
     tree = BallTree(np.radians(coords), metric="haversine")
     
-    distances, indices = tree.query(np.radians(coords), k=KNN_VALUE + 1)
+    distances, indices = tree.query(np.radians(coords), k=cfg.parameters.knn_value + 1)
     neighbors = [set(idx[1:]) for idx in indices]
     return neighbors
 

@@ -10,9 +10,9 @@ import pandas as pd
 import geopandas as gpd
 
 from dataclasses import dataclass
-from travel_route_optimization.model_training.env_tdtoptw import TDTOPTWEnv
-from travel_route_optimization.model_training.train_dqn import load_env_train
-from travel_route_optimization.model_training.qnet import QNet
+from src.model_training.env_tdtoptw import TDTOPTWEnv
+from src.model_training.train_dqn import load_env_train
+from src.model_training.qnet import QNet
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mlflow.set_tracking_uri("http://localhost:5000")

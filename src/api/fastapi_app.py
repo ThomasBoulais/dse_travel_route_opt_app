@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from travel_route_optimization.inference.generate_itinerary import generate_itinerary
+from src.inference.generate_itinerary import generate_itinerary
 import mlflow
 
 mlflow.set_tracking_uri("http://localhost:5000")

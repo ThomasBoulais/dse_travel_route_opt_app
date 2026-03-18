@@ -1,5 +1,3 @@
-# loader.py
-
 import mlflow
 import mlflow.pytorch
 from typing import Optional

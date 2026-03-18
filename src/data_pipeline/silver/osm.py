@@ -6,7 +6,10 @@ import osmnx as ox
 import geopandas as gpd
 import logging
 
-from travel_route_optimization.utils.config import DEFAULT_CRS, OSM_SILVER_GEOPARQUET, SILVER_DRIVE_GRAPHML, SILVER_WALK_GRAPHML
+# from src.utils.config import DEFAULT_CRS, OSM_SILVER_GEOPARQUET, SILVER_DRIVE_GRAPHML, SILVER_WALK_GRAPHML
+from src.common.config_loader import load_config
+
+cfg = load_config()
 
 ox.settings.use_cache = True
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -50,15 +53,15 @@ def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: gpd.GeoDataFrame) -> None:
     """ Sauvegarde en  GeoParquet & Graphml (passage Bronze => Silver)."""
     if slim_pois_gdf.crs is None:
-        slim_pois_gdf = slim_pois_gdf.set_crs(DEFAULT_CRS)
-    slim_pois_gdf = slim_pois_gdf.to_crs(DEFAULT_CRS)  # ensure standard WGS84 coordinates
-    slim_pois_gdf.to_parquet(OSM_SILVER_GEOPARQUET)
-    log.info(f"Bronze => Silver (OSM) : GeoParquet POIs sauvegardés à {OSM_SILVER_GEOPARQUET}")
+        slim_pois_gdf = slim_pois_gdf.set_crs(cfg.crs.default)
+    slim_pois_gdf = slim_pois_gdf.to_crs(cfg.crs.default)  # ensure standard WGS84 coordinates
+    slim_pois_gdf.to_parquet(cfg.silver.osm_geoparquet)
+    log.info(f"Bronze => Silver (OSM) : GeoParquet POIs sauvegardés à {cfg.silver.osm_geoparquet}")
 
-    ox.save_graphml(G_drive, filepath=SILVER_DRIVE_GRAPHML)
+    ox.save_graphml(G_drive, filepath=cfg.silver.drive_graphml)
     log.info(f"Bronze => Silver (OSM) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
-    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {SILVER_DRIVE_GRAPHML}")
+    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {cfg.silver.drive_graphml}")
 
-    ox.save_graphml(G_walk, filepath=SILVER_WALK_GRAPHML)
+    ox.save_graphml(G_walk, filepath=cfg.silver.walk_graphml)
     log.info(f"Bronze => Silver (OSM) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
-    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {SILVER_WALK_GRAPHML}")
+    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {cfg.silver.walk_graphml}")

@@ -12,8 +12,8 @@ import torch.nn as nn
 import torch.optim as optim
 import mlflow
 
-from travel_route_optimization.model_training.env_tdtoptw import TDTOPTWEnv
-from travel_route_optimization.model_training.qnet import QNet
+from src.model_training.env_tdtoptw import TDTOPTWEnv
+from src.model_training.qnet import QNet
 
 
 # ---------------------------------------------------------

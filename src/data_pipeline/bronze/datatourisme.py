@@ -12,10 +12,14 @@ Structure du dump :
 
 import json
 import logging
+from pathlib import Path
 import requests
 import zipfile
 
-from travel_route_optimization.utils.config import DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE
+# from src.utils.config import DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE
+from src.common.config_loader import load_config
+
+cfg = load_config()
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -26,8 +30,8 @@ log = logging.getLogger(__name__)
 
 def get_dump() -> None:
     """Récupère les données sous format GZIP depuis https://diffuseur.datatourisme.fr."""
-    r = requests.get(DT_DUMP_URL)
-    with open(DT_DUMP_PATH, "wb") as f:
+    r = requests.get(cfg.bronze.dt_dump_url, stream=True)
+    with open(cfg.bronze.dt_dump_path, "wb") as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
@@ -35,14 +39,14 @@ def get_dump() -> None:
 
 def extract_dump() -> None:
     """Extrait le dump GZIP dans le dossier Bronze"""
-    with zipfile.ZipFile(DT_DUMP_PATH, 'r') as zObject:
-        zObject.extractall(path=DT_DUMP_DIR)
+    with zipfile.ZipFile(cfg.bronze.dt_dump_path, 'r') as zObject:
+        zObject.extractall(path=cfg.bronze.dt_dump_dir)
 
 
 def load_index() -> list[dict]:
     """Charge index.json vers une liste de {label, file, lastUpdateDatatourisme}."""
-    log.info(f"Source => Bronze (DATATOURISME) : Lecture de l'index {DT_INDEX_FILE}")
-    with open(DT_INDEX_FILE, encoding="utf-8") as f:
+    log.info(f"Source => Bronze (DATATOURISME) : Lecture de l'index {cfg.bronze.dt_index_file}")
+    with open(cfg.bronze.dt_index_file, encoding="utf-8") as f:
         index = json.load(f)
     log.info(f"Source => Bronze (DATATOURISME) : {len(index):,} entrées dans l'index.")
     return index
@@ -57,7 +61,7 @@ def ingest_bronze(index: list[dict]) -> list[dict]:
     errors = 0
 
     for item in index:
-        filepath = DT_DUMP_DIR / 'objects' / item["file"]
+        filepath = Path(cfg.bronze.dt_dump_dir) / 'objects' / item["file"]
         if not filepath.exists():
             log.warning(f"Source => Bronze (DATATOURISME) : Fichier introuvable {filepath}")
             errors += 1

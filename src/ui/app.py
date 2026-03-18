@@ -9,7 +9,10 @@ import folium.plugins as plugins
 import osmnx as ox
 import networkx as nx
 
-from travel_route_optimization.utils.config import DEFAULT_CRS, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET
+# from src.utils.config import DEFAULT_CRS, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET
+from src.common.config_loader import load_config
+
+cfg = load_config()
 
 # ----------------- CONFIG -----------------
 ITINERARY_URL = "http://localhost:8000/itinerary"
@@ -26,17 +29,17 @@ st.markdown("Vision des POIs & routes disponibles pour des itinéraires de voyag
 # ----------------- DATA LOADERS -----------------
 @st.cache_data
 def load_pois():
-    pois = gpd.read_parquet(GOLD_POIS_GEOPARQUET)
-    pois = pois.to_crs(DEFAULT_CRS)
+    pois = gpd.read_parquet(cfg.gold.pois_geoparquet)
+    pois = pois.to_crs(cfg.crs.default)
     # st.table(pois[pois.index==0])
-    return pois.to_crs(DEFAULT_CRS)
+    return pois.to_crs(cfg.crs.default)
 
 
 @st.cache_data
 def load_drive_graph():
-    G = ox.load_graphml(GOLD_DRIVE_GRAPHML)
-    if G.graph.get("crs") and G.graph["crs"] != DEFAULT_CRS:
-        G = ox.project_graph(G, to_crs=DEFAULT_CRS)
+    G = ox.load_graphml(cfg.gold.drive_graphml)
+    if G.graph.get("crs") and G.graph["crs"] != cfg.crs.default:
+        G = ox.project_graph(G, to_crs=cfg.crs.default)
     return G
 
 

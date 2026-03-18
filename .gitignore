@@ -8,7 +8,7 @@ __pycache__
 *.pyc
 
 # l'ensemble des données du pipeline
-travel_route_optimization/data/
+data/
 
 # setup
 travel_route_optimization.egg-info

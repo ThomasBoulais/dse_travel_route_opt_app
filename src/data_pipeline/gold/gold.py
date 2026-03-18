@@ -11,9 +11,11 @@ import osmnx as ox
 from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
-from travel_route_optimization.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
-from travel_route_optimization.utils.pipeline_helpers import extract_categories, add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
+# from src.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
+from src.utils.pipeline_helpers import extract_categories, add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
+from src.common.config_loader import load_config
 
+cfg = load_config()
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)
@@ -29,14 +31,14 @@ def osm_transform_gold():
     - ajoute les catégories & le masque d'horaires d'ouverture
     - fixe le CRS (Coordinate Reference System)
     """
-    osm_df = fastparquet.ParquetFile(OSM_SILVER_GEOPARQUET).to_pandas()
+    osm_df = fastparquet.ParquetFile(cfg.silver.osm_geoparquet).to_pandas()
     osm_gdf = to_geopandas(osm_df)
     osm_gdf = osm_add_category(osm_gdf)
     osm_gdf = osm_add_open_hour_mask(osm_gdf)
     osm_gdf = add_visit_duration(osm_gdf, 'OSM')
 
     osm_gdf = osm_gdf[['name', 'geometry', 'categories', 'types', 'phone', 'website', 'opening_hours', 'opening_mask', 'visit_duration']]
-    osm_gdf.set_crs(DEFAULT_CRS, inplace=True)
+    osm_gdf.set_crs(cfg.crs.default, inplace=True)
     return osm_gdf
 
 
@@ -50,7 +52,7 @@ def dt_transform_gold():
     - ajoute les catégories & le masque d'horaires d'ouverture
     - fixe le CRS (Coordinate Reference System)
     """
-    dt_df = fastparquet.ParquetFile(DT_SILVER_GEOPARQUET).to_pandas()
+    dt_df = fastparquet.ParquetFile(cfg.silver.dt_geoparquet).to_pandas()
     dt_gdf = to_geopandas(dt_df)
     dt_gdf = dt_add_category(dt_gdf)
     dt_gdf = dt_add_open_hour_mask(dt_gdf)
@@ -58,7 +60,7 @@ def dt_transform_gold():
 
     dt_gdf['name'] = dt_gdf['name_fr'].apply(lambda x: str(x[0].title()))
     dt_gdf = dt_gdf.rename({'id': 'id_dt'}, axis=1)[['id_dt', 'name', 'geometry', 'categories', 'types', 'email', 'phone', 'website', 'opening_hours', 'opening_mask', 'visit_duration']]
-    dt_gdf.set_crs(DEFAULT_CRS, inplace=True)
+    dt_gdf.set_crs(cfg.crs.default, inplace=True)
     return dt_gdf
 
 
@@ -89,8 +91,8 @@ def get_id_equivalent(dt_row: gpd.GeoSeries, osm_m: gpd.GeoDataFrame) -> int|Non
 
 def merge_gold(dt_gdf: gpd.GeoDataFrame, osm_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Fusionne les 2 sources de données"""
-    dt_m = dt_gdf.to_crs(DEFAULT_CRS) # EPSG:2154 => projection métrique française officielle
-    osm_m = osm_gdf.to_crs(DEFAULT_CRS)
+    dt_m = dt_gdf.to_crs(cfg.crs.default) # EPSG:2154 => projection métrique française officielle
+    osm_m = osm_gdf.to_crs(cfg.crs.default)
 
     dt_m['osm_match_id'] = dt_m.apply(get_id_equivalent, args=(osm_m,), axis=1)
     # print(dt_m.notnull().sum())
@@ -133,7 +135,7 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
     pois = nearest_node(pois, G_drive)
     neighbors = get_knn_pois(pois)
 
-    add_travel_time(G_drive, DRIVE_SPEED)
+    add_travel_time(G_drive, cfg.parameters.drive_speed)
     
     log.info(f"Silver => Gold (KNN_GRAPH) : Création du graphe KNN des temps de route entre POIs")
     
@@ -223,29 +225,29 @@ def export_gold(gold_gdf: gpd.GeoDataFrame,
     - le graphe des KNN avec tps de trajet en pd.DataFrame
     """
     if gold_gdf.crs is None:
-        gold_gdf = gold_gdf.set_crs(DEFAULT_CRS)
-    gold_gdf = gold_gdf.to_crs(DEFAULT_CRS)
+        gold_gdf = gold_gdf.set_crs(cfg.crs.default)
+    gold_gdf = gold_gdf.to_crs(cfg.crs.default)
 
     gold_gdf["opening_mask_flat"] = gold_gdf["opening_mask"].apply(flatten_mask)
     gold_gdf = gold_gdf.drop(columns=["opening_mask"])
     # pour pouvoir le reconstruire => mask = np.array(flat).reshape(7, 1440)
 
-    gold_gdf.to_parquet(GOLD_POIS_GEOPARQUET, index=False)
-    log.info(f"Silver => Gold (MERGE) : GeoParquet sauvegardé : {GOLD_POIS_GEOPARQUET}  ({len(gold_gdf):,} lignes)")
+    gold_gdf.to_parquet(cfg.gold.pois_geoparquet, index=False)
+    log.info(f"Silver => Gold (MERGE) : GeoParquet sauvegardé : {cfg.gold.pois_geoparquet}  ({len(gold_gdf):,} lignes)")
 
     # CSV sans géométrie pour exploration rapide
-    gold_gdf.drop(columns="geometry").to_csv(GOLD_POIS_CSV, index=False, encoding="utf-8-sig")
-    log.info(f"Silver => Gold (MERGE) : CSV sauvegardé       : {GOLD_POIS_CSV}")
+    gold_gdf.drop(columns="geometry").to_csv(cfg.gold.pois_csv, index=False, encoding="utf-8-sig")
+    log.info(f"Silver => Gold (MERGE) : CSV sauvegardé       : {cfg.gold.pois_csv}")
 
-    ox.save_graphml(G_drive, filepath=GOLD_DRIVE_GRAPHML)
+    ox.save_graphml(G_drive, filepath=cfg.gold.drive_graphml)
     log.info(f"Silver => Gold (MERGE) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
-    log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {GOLD_DRIVE_GRAPHML}")
+    log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {cfg.gold.drive_graphml}")
 
     # ox.save_graphml(G_walk, filepath=GOLD_WALK_GRAPHML)
     # log.info(f"Silver => Gold (MERGE) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
     # log.info(f"Silver => Gold (MERGE) : Graphml sauvegardés à {GOLD_WALK_GRAPHML}")
 
-    edges_df.to_csv(KNN_DRIVE_TIME_GRAPH_DF, index=False)
+    edges_df.to_csv(cfg.gold.knn_drive_time_graph_df, index=False)
     log.info(f"Silver => Gold (MERGE) : {len(edges_df)} arrêtes dans le graphe KNN.")
-    log.info(f"Silver => Gold (MERGE) : pd.DataFrame sauvegardés à {KNN_DRIVE_TIME_GRAPH_DF}")
+    log.info(f"Silver => Gold (MERGE) : pd.DataFrame sauvegardés à {cfg.gold.knn_drive_time_graph_df}")
 
