@@ -9,7 +9,7 @@ import pandas as pd
 from shapely import wkb
 from sklearn.neighbors import BallTree
 
-from travel_route_optimization.data_pipeline.utils.config import DT_DICT_TYPES_DETAILED, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET, INTEREST_SCORE, KNN_VALUE, OSM_DICT_TYPES_DETAILED
+from travel_route_optimization.utils.config import DT_DICT_TYPES_DETAILED, GOLD_DRIVE_GRAPHML, GOLD_POIS_GEOPARQUET, INTEREST_SCORE, KNN_VALUE, OSM_DICT_TYPES_DETAILED
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)

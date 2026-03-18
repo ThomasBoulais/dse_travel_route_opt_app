@@ -1,6 +1,6 @@
 import numpy as np
 
-from travel_route_optimization.inference.evaluator import generate_itinerary, load_env
+from testing_grounds.evaluator import generate_itinerary, load_env
 
 config_path = "C:/Users/thoma/Documents/python_projects/dse_travel_route_opt_app/travel_route_optimization/model_training/config.yaml"
 

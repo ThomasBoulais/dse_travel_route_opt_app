@@ -177,7 +177,7 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
                 "poi_to": int(nearest),
                 "node_from": u,
                 "node_to": v,
-                "drive_time": round(w_drive+1),
+                "drive_time": int(w_drive)+1,
             }])
         ], ignore_index=True)
 

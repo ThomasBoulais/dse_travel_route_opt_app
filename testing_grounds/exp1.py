@@ -77,9 +77,9 @@ knn_df = pd.read_csv(r'testing_grounds\herault_knn_neighbors.csv')
 
 print(knn_df.head())
 
-knn_df = knn_df.round({'drive_time':0})
-knn_df['drive_time'] += 1
+# knn_df = knn_df.round({'drive_time':0})
+# knn_df['drive_time'] += 1
 
-print(knn_df.head())
+# print(knn_df.head())
 
-knn_df.to_csv(r'testing_grounds\herault_knn_neighbors2.csv', index=False)
+# knn_df.to_csv(r'testing_grounds\herault_knn_neighbors2.csv', index=False)

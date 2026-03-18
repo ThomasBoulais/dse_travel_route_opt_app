@@ -1,9 +1,9 @@
 from pathlib import Path
 
-DATA_DIR    = Path(__file__).parents[2] / "data"
-BRONZE_DIR  = Path(__file__).parents[2] / "data/bronze"
-SILVER_DIR  = Path(__file__).parents[2] / "data/silver"
-GOLD_DIR    = Path(__file__).parents[2] / "data/gold"
+DATA_DIR    = Path(__file__).parents[1] / "data"
+BRONZE_DIR  = Path(__file__).parents[1] / "data/bronze"
+SILVER_DIR  = Path(__file__).parents[1] / "data/silver"
+GOLD_DIR    = Path(__file__).parents[1] / "data/gold"
 
 DEFAULT_CRS = "EPSG:4326" # WGS84       => référentiel mondial
 # DEFAULT_CRS = "EPSG:2154" # Lambert-93  => référentiel français

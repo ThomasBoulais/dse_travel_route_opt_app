@@ -4,11 +4,11 @@ import numpy as np
 import geopandas as gpd
 import pandas as pd
 
-from .loader import load_model
-from .env_v1 import TDTOPTWEnv
-from .validators import validate_route
-from .scoring import score_route
-from .route_step import RouteStep
+from ..travel_route_optimization.inference.loader import load_model
+from ..travel_route_optimization.inference.env_v1 import TDTOPTWEnv
+from ..travel_route_optimization.inference.validators import validate_route
+from ..travel_route_optimization.inference.scoring import score_route
+from ..travel_route_optimization.inference.route_step import RouteStep
 
 
 # ---------------------------------------------------------
