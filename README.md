@@ -63,7 +63,7 @@ Puis parmi les actions possibles :
     ```  
 
     <div class="alert alert-warning">
-    ⚠️ Une étape de passage d'un modèle en production est nécessaire via l'UX MLFlow afin d'y avoir accès via fastapi
+    ⚠️ Il faut qu'un modèle soit en production afin d'y avoir accès via fastapi (possible via UX MLFlow)
     </div>
 
 7. Pour accéder au modèle, lancer un serveur UVICORN
