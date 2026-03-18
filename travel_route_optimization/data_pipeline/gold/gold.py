@@ -11,8 +11,8 @@ import osmnx as ox
 from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
-from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
-from travel_route_optimization.data_pipeline.utils.pipeline_helpers import add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
+from travel_route_optimization.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
+from travel_route_optimization.utils.pipeline_helpers import add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
 from travel_route_optimization.model_training.train_dqn import extract_categories
 
 
@@ -177,7 +177,7 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
                 "poi_to": int(nearest),
                 "node_from": u,
                 "node_to": v,
-                "drive_time": w_drive,
+                "drive_time": round(w_drive+1),
             }])
         ], ignore_index=True)
 

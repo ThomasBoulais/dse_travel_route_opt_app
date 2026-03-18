@@ -14,7 +14,7 @@ import travel_route_optimization.data_pipeline.bronze.datatourisme as dt_bronze
 import travel_route_optimization.data_pipeline.silver.datatourisme as dt_silver
 import travel_route_optimization.data_pipeline.bronze.osm as osm_bronze
 import travel_route_optimization.data_pipeline.silver.osm as osm_silver 
-from travel_route_optimization.data_pipeline.utils.config import BBOX_BOTTOM, BBOX_LEFT, BBOX_RIGHT, BBOX_TOP, BRONZE_DIR, DATA_DIR, DT_BRONZE_DIR, OSM_BRONZE_DIR, SILVER_DIR, GOLD_DIR
+from travel_route_optimization.utils.config import BBOX_BOTTOM, BBOX_LEFT, BBOX_RIGHT, BBOX_TOP, BRONZE_DIR, DATA_DIR, DT_BRONZE_DIR, OSM_BRONZE_DIR, SILVER_DIR, GOLD_DIR
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 log = logging.getLogger(__name__)

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import BallTree
 
-from travel_route_optimization.data_pipeline.utils.config import (
+from travel_route_optimization.utils.config import (
     GOLD_DRIVE_GRAPHML,
     GOLD_POIS_GEOPARQUET,
     BBOX_LEFT,

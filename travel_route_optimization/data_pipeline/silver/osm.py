@@ -6,7 +6,7 @@ import osmnx as ox
 import geopandas as gpd
 import logging
 
-from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS, OSM_SILVER_GEOPARQUET, SILVER_DRIVE_GRAPHML, SILVER_WALK_GRAPHML
+from travel_route_optimization.utils.config import DEFAULT_CRS, OSM_SILVER_GEOPARQUET, SILVER_DRIVE_GRAPHML, SILVER_WALK_GRAPHML
 
 ox.settings.use_cache = True
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")

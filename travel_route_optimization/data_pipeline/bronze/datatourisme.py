@@ -15,7 +15,7 @@ import logging
 import requests
 import zipfile
 
-from utils.config import DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE, DT_SILVER_CSV, DT_SILVER_GEOPARQUET
+from travel_route_optimization.utils.config import DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")

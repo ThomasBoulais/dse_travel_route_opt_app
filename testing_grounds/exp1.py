@@ -5,7 +5,7 @@ import pyarrow.parquet as pq
 import geopandas as gpd
 from shapely.geometry import Polygon, LineString, Point
 
-from travel_route_optimization.data_pipeline.utils.config import DEFAULT_CRS
+from travel_route_optimization.utils.config import DEFAULT_CRS
 # 1. merge OSM & DT into gold 
 # 1. get some datapoints from gold 
 
@@ -72,3 +72,14 @@ print(df.loc[0,'latitude'])
 
 print(8647+4437)
 print(8647+3628)
+
+knn_df = pd.read_csv(r'testing_grounds\herault_knn_neighbors.csv')
+
+print(knn_df.head())
+
+knn_df = knn_df.round({'drive_time':0})
+knn_df['drive_time'] += 1
+
+print(knn_df.head())
+
+knn_df.to_csv(r'testing_grounds\herault_knn_neighbors2.csv', index=False)

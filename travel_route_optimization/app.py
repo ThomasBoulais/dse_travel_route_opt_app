@@ -7,7 +7,7 @@ from streamlit_folium import st_folium
 import osmnx as ox
 import requests
 
-from travel_route_optimization.data_pipeline.utils.config import GOLD_POIS_GEOPARQUET, SILVER_DRIVE_GRAPHML
+from travel_route_optimization.utils.config import GOLD_POIS_GEOPARQUET, SILVER_DRIVE_GRAPHML
 
 # =====================================================================
 # PAGE CONFIGURATION — must be the first Streamlit call
@@ -141,13 +141,14 @@ if show_pois and not pois_filtered.empty:
     for _, row in pois_filtered.iterrows():
         name = str(row.get("name", "Unknown"))
         category = row.get("main_category") or "?"
-        folium.Marker(
+        folium.CircleMarker(
             location=[row.geometry.y, row.geometry.x],
             radius=4,
             color="steelblue",
-            # fill=True,
-            # fill_opacity=0.8,
-            icon=folium.DivIcon(html=f"""<div style="font-family: courier new; color: black">1</div>"""),
+            fill=True,
+            fill_opacity=0.8,
+            icon=folium.Icon(color='white',
+                               prefix='fa',icon='1'),
             tooltip=f"{name} ({category})",
             popup=folium.Popup(f"<b>{name}</b><br>{category}", max_width=200)
         ).add_to(poi_layer)
