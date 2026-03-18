@@ -62,7 +62,7 @@ Puis parmi les actions possibles :
     python -m travel_route_optimization.model_training.register_model
     ```  
 
-    <div class="alert-box alert-box-warning">
+    <div class="alert alert-warning">
     Une étape de passage d'un modèle en production est nécessaire via l'UX MLFlow afin d'y avoir accès via fastapi
     </div>
 
