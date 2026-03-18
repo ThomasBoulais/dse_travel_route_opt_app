@@ -12,8 +12,7 @@ from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
 
 
 from travel_route_optimization.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
-from travel_route_optimization.utils.pipeline_helpers import add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
-from travel_route_optimization.model_training.train_dqn import extract_categories
+from travel_route_optimization.utils.pipeline_helpers import extract_categories, add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
@@ -144,6 +143,10 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
         for j in neighbors[i]:
             v = pois.iloc[j]["nearest_node"]
             w_drive = travel_time(G_drive, u, v)
+            try:
+                w_drive = int(w_drive)+1
+            except OverflowError:
+                continue
             edges.append({
                 "poi_from": i,
                 "poi_to": j,
@@ -169,7 +172,10 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
         u = pois.loc[poi, "nearest_node"]
         v = pois.loc[nearest, "nearest_node"]
         w_drive = travel_time(G_drive, u, v)
-
+        try:
+            w_drive = int(w_drive)+1
+        except OverflowError:
+            continue
         edges_df = pd.concat([
             edges_df,
             pd.DataFrame([{

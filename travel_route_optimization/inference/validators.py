@@ -4,7 +4,7 @@ def check_opening_hours(route, opening_mask):
         poi = step.poi_idx
         day = step.day
         start = int(step.arrival_minute)
-        end =   int(step.departure_minute)
+        end = int(step.departure_minute)
 
         for minute in range(start, end + 1):
             if opening_mask[poi, day, minute] != 1:
@@ -80,13 +80,13 @@ def check_travel_time_consistency(route, travel_time_matrix):
     violations = []
 
     for prev, curr in zip(route[:-1], route[1:]):
-        expected = travel_time_matrix[prev.poi_idx, curr.poi_idx]
+        expected_minutes = travel_time_matrix[prev.poi_idx, curr.poi_idx] * 60.0
         actual = curr.arrival_minute - prev.departure_minute
 
-        if abs(actual - expected) > 2:  # allow small rounding error
+        if abs(actual - expected_minutes) > 2:  # pour les arrondis
             violations.append(
                 f"Travel mismatch {prev.poi_name} → {curr.poi_name}: "
-                f"expected {expected:.1f}, got {actual:.1f}"
+                f"expected {expected_minutes:.1f} min, got {actual:.1f} min"
             )
 
     return len(violations) == 0, violations

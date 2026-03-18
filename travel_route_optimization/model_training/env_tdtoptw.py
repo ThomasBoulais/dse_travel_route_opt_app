@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Dict, Set, Tuple
 
+
 class TDTOPTWEnv:
     def __init__(
         self,
@@ -25,7 +26,6 @@ class TDTOPTWEnv:
         self.opening_mask = opening_mask
         self.travel_time = travel_time
 
-        # KNN neighbors: list of lists, neighbors[i] = [j1, j2, ...]
         self.knn_neighbors = knn_neighbors
         self.max_actions = max(len(n) for n in knn_neighbors)
 
@@ -36,6 +36,8 @@ class TDTOPTWEnv:
         self.N = poi_features.shape[0]
         self.d = poi_features.shape[1]
 
+        # Keep both names for compatibility with training and evaluation code
+        self.start_poi_idx = start_poi_idx
         self.start_poi = start_poi_idx
         self.start_day = start_day
         self.day_start_minute = day_start_minute
@@ -115,20 +117,21 @@ class TDTOPTWEnv:
             visit_dur = self.visit_durations[j]
             total = tt + visit_dur
 
-            day_arr, _ = self._time_to_indices(tt)
+            day_arr, min_arr = self._time_to_indices(tt)
             day_dep, min_dep = self._time_to_indices(total)
             day_idx = self._day_index_from_start(day_dep)
             if day_idx >= self.num_days:
                 continue
 
-            d_arr, mm_arr = self._time_to_indices(tt)
-            if not self._is_open(j, d_arr, mm_arr):
+            if not self._is_open(j, day_arr, min_arr):
                 continue
 
             if min_dep > self.day_end_minute + 60 and not self.is_accommodation[j]:
                 continue
 
-            if self.is_accommodation[j] and (self.accommodation_used_today or self.current_minute < 18*60):
+            if self.is_accommodation[j] and (
+                self.accommodation_used_today or self.current_minute < 18 * 60
+            ):
                 continue
 
             if self.main_categories[j] == "restauration":
@@ -137,25 +140,29 @@ class TDTOPTWEnv:
 
             mask[a] = True
 
-        # PAD to max_actions
         padded = np.zeros(self.max_actions, dtype=bool)
         padded[:K] = mask
         return padded
-
 
     def step(self, action_idx: int) -> Tuple[np.ndarray, float, bool, Dict]:
         feas_mask = self._feasible_actions_mask()
 
         if action_idx is None or action_idx < 0 or action_idx >= len(feas_mask):
-            return self._get_state(), self.reward_cfg["invalid_penalty"], True, {"reason": "invalid_action"}
+            return self._get_state(), self.reward_cfg["invalid_penalty"], True, {
+                "reason": "invalid_action"
+            }
 
         if not feas_mask[action_idx]:
-            return self._get_state(), self.reward_cfg["invalid_penalty"], True, {"reason": "infeasible"}
+            return self._get_state(), self.reward_cfg["invalid_penalty"], True, {
+                "reason": "infeasible"
+            }
 
         prev_poi = self.current_poi
         neighbors = self.knn_neighbors[self.current_poi]
         if action_idx >= len(neighbors):
-            return self._get_state(), self.reward_cfg["invalid_penalty"], True, {"reason": "invalid_action"}
+            return self._get_state(), self.reward_cfg["invalid_penalty"], True, {
+                "reason": "invalid_action"
+            }
         next_poi = neighbors[action_idx]
 
         tt = self.travel_time[prev_poi, next_poi]
@@ -233,6 +240,7 @@ class TDTOPTWEnv:
             and not self.is_accommodation[self.current_poi]
         ):
             reward += r_cfg["night_penalty"]
+            done = True
             info["reason"] = "night_without_accommodation"
 
         if self.steps >= self.max_steps:

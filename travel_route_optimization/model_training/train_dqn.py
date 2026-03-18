@@ -13,24 +13,7 @@ import torch.optim as optim
 import mlflow
 
 from travel_route_optimization.model_training.env_tdtoptw import TDTOPTWEnv
-
-
-# ---------------------------------------------------------
-# Q-network
-# ---------------------------------------------------------
-class QNet(nn.Module):
-    def __init__(self, state_dim: int, action_dim: int, hidden_dim: int = 256):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(state_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, action_dim),
-        )
-
-    def forward(self, x):
-        return self.net(x)
+from travel_route_optimization.model_training.qnet import QNet
 
 
 # ---------------------------------------------------------
@@ -90,7 +73,6 @@ def load_env_train(config_path: str) -> TDTOPTWEnv:
         dtype=np.uint8,
     )
 
-    # Build knn_neighbors list-of-lists
     knn_neighbors = [[] for _ in range(N)]
     for _, row in knn_df.iterrows():
         i = int(row["poi_from"])
@@ -163,9 +145,15 @@ def train(config_path: str = "travel_route_optimization/model_training/config.ya
     experiment_name = cfg["experiment_name"]
     run_name = cfg["run_name"]
 
+    # Use tracking URI from env if set, otherwise default local store
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+
     mlflow.set_experiment(experiment_name)
 
     with mlflow.start_run(run_name=run_name):
+        # Log config once at the beginning
         mlflow.log_artifact(config_path)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -201,7 +189,7 @@ def train(config_path: str = "travel_route_optimization/model_training/config.ya
         grad_clip = 5.0
         target_update_steps = 500
         reward_scale = 10.0
-        q_clip = 1000.0
+        q_clip = 200.0
         loss_fn = nn.SmoothL1Loss()
 
         for ep in range(num_episodes):
@@ -214,6 +202,7 @@ def train(config_path: str = "travel_route_optimization/model_training/config.ya
             while not done:
                 action = select_action(env, qnet, state, epsilon, device)
                 if action is None:
+                    done = True
                     break
 
                 next_state, reward, done, info = env.step(action)
@@ -244,8 +233,7 @@ def train(config_path: str = "travel_route_optimization/model_training/config.ya
                         target = r_t + gamma * next_q * (1.0 - d_t)
                         target = torch.clamp(target, -q_clip, q_clip)
 
-                    q_vals_clamped = torch.clamp(q_vals, -q_clip, q_clip)
-                    loss = loss_fn(q_vals_clamped, target)
+                    loss = loss_fn(q_vals, target)
                     last_loss = float(loss.item())
 
                     optimizer.zero_grad()
@@ -258,15 +246,16 @@ def train(config_path: str = "travel_route_optimization/model_training/config.ya
 
             epsilon = max(
                 epsilon_end,
-                epsilon_start - (epsilon_start - epsilon_end) * (ep + 1) / epsilon_decay_episodes,
+                epsilon_start
+                - (epsilon_start - epsilon_end) * (ep + 1) / epsilon_decay_episodes,
             )
 
             mlflow.log_metric("reward", ep_reward, step=ep)
-            mlflow.log_metric("loss", last_loss if last_loss else 0.0, step=ep)
+            mlflow.log_metric("loss", last_loss if last_loss is not None else 0.0, step=ep)
             mlflow.log_metric("steps", episode_steps, step=ep)
             mlflow.log_metric("epsilon", epsilon, step=ep)
 
-            if (ep+1) % 10 == 0:
+            if (ep + 1) % 10 == 0:
                 print(
                     f"Episode {ep+1}/{num_episodes} - "
                     f"Epsilon: {epsilon:.3f} | "
@@ -276,10 +265,19 @@ def train(config_path: str = "travel_route_optimization/model_training/config.ya
                 )
 
         os.makedirs("models", exist_ok=True)
-        model_path = os.path.join("models", "tdtoptw_dqn.pt")
+        model_path = "tdtoptw_dqn.pt"
         torch.save(qnet.state_dict(), model_path)
         mlflow.log_artifact(model_path)
-        print(f"Model saved to {model_path}")
+
+        mlflow.pytorch.log_model(
+            pytorch_model=qnet,
+            artifact_path="model"
+        )
+
+        print("\nTraining terminé.")
+        print("Poids bruts (raw weights) sauvegardés sous tdtoptw_dqn.pt")
+        print("MLflow model loggué sous artifacts/model/")
+        print("La run peut être enregistrée dans le MLflow Model Registry.")
 
 
 if __name__ == "__main__":

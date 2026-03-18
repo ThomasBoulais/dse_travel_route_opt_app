@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class RouteStep:
     poi_idx: int

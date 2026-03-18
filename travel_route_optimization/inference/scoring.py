@@ -17,7 +17,6 @@ def total_interest(route):
         if hasattr(step, "interest_score"):
             total += float(step.interest_score)
         else:
-            # fallback: category-based scoring
             total += CATEGORY_SCORES.get(step.category, 0.0)
     return total
 
@@ -40,8 +39,8 @@ def total_travel_time(route):
 
 def score_route(route):
     return (
-        0.4 * total_interest(route) +
-        0.2 * category_diversity(route) +
-        0.2 * num_pois(route) -
-        0.2 * total_travel_time(route)
+        0.4 * total_interest(route)
+        + 0.2 * category_diversity(route)
+        + 0.2 * num_pois(route)
+        - 0.2 * total_travel_time(route)
     )

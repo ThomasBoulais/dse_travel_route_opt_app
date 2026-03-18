@@ -1,3 +1,5 @@
+# loader.py
+
 import mlflow
 import mlflow.pytorch
 from typing import Optional
@@ -5,44 +7,40 @@ from typing import Optional
 
 def load_model(model_name: str, version: Optional[str] = None, stage: Optional[str] = None):
     """
-    Load a trained DQN model from the MLflow Model Registry.
+    Charge un DQN trained model depuis le Model Registry de MLFlow 
 
     Parameters
     ----------
     model_name : str
-        Name of the registered model (e.g., "tdtoptw_dqn").
+        Nom du registered model (par ex. "tdtoptw_dqn")
     version : str, optional
-        Specific version number to load (e.g., "3").
-        Mutually exclusive with `stage`.
+        Num de version spécifique (par ex. "3")
+        Mutuellement exclusif avec `stage`
     stage : str, optional
-        Model stage to load ("Staging", "Production").
-        Mutually exclusive with `version`.
+        Statut du modèle à charger ("Staging", "Production")
+        Mutuellement exclusif avec `version`
 
     Returns
     -------
     torch.nn.Module
-        The loaded PyTorch model ready for inference.
+        La version chargée du PyTorch model pour l'inférence
 
     Raises
     ------
     ValueError
-        If both `version` and `stage` are provided.
+        Si `version` et `stage` sont toutes les 2 renseignées
     """
 
     if version and stage:
         raise ValueError("Specify either a version OR a stage, not both.")
 
-    # Build MLflow URI
     if version:
         model_uri = f"models:/{model_name}/{version}"
     elif stage:
         model_uri = f"models:/{model_name}/{stage}"
     else:
-        # Default: load the latest Production model
         model_uri = f"models:/{model_name}/Production"
 
-    # Load the model
     model = mlflow.pytorch.load_model(model_uri)
     model.eval()
-
     return model

@@ -11,7 +11,8 @@ import geopandas as gpd
 
 from dataclasses import dataclass
 from travel_route_optimization.model_training.env_tdtoptw import TDTOPTWEnv
-from travel_route_optimization.model_training.train_dqn import load_env_train, QNet
+from travel_route_optimization.model_training.train_dqn import load_env_train
+from travel_route_optimization.model_training.qnet import QNet
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mlflow.set_tracking_uri("http://localhost:5000")
@@ -50,40 +51,35 @@ def format_time(day: int, minute: int) -> str:
     m = minute % 60
     return f"Day {day} – {h:02d}:{m:02d}"
 
+
 def generate_itinerary(run_id: str, config_path: str, start_poi: int, start_day: int, num_days: int):
-    # Load config
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
 
-    # Load environment
     env = load_env_train(config_path)
-    env.start_poi_idx = start_poi
+    # Use the correct attribute name and keep time budget consistent
+    env.start_poi = start_poi
     env.start_day = start_day
     env.num_days = num_days
+    env.total_time_budget = num_days * (env.day_end_minute - env.day_start_minute)
 
-    # Load POI metadata
     pois = gpd.read_parquet(cfg["data"]["pois_geoparquet"]).reset_index(drop=True)
     main_categories = pois["main_category"].to_numpy()
     is_accommodation = pois["categories"].apply(
         lambda s: "accomodation" in s if isinstance(s, str) else False
     ).to_numpy()
 
-    # Build model architecture
     state_dim = env._get_state().shape[0]
     n_actions = env.max_actions
     qnet = QNet(state_dim, n_actions).to(device)
 
-    # Load model weights from MLflow
     model_uri = f"runs:/{run_id}/tdtoptw_dqn.pt"
     local_path = mlflow.artifacts.download_artifacts(model_uri)
     state_dict = torch.load(local_path, map_location=device)
     qnet.load_state_dict(state_dict)
     qnet.eval()
 
-    # Generate route
     route = generate_route(env, qnet, pois, main_categories, is_accommodation)
-
-    # Convert to JSON-serializable dict
     return [step.to_dict() for step in route]
 
 
@@ -111,6 +107,11 @@ def generate_route(env: TDTOPTWEnv, qnet: QNet, pois, main_categories, is_accomm
         next_poi = neighbors[action_idx]
 
         travel_t = env.travel_time[current_poi, next_poi]
+        try:
+            travel_t = int(travel_t) + 1
+        except OverflowError:
+            continue
+
         arrival_day, arrival_minute = env._time_to_indices(travel_t)
         visit_dur = env.visit_durations[next_poi]
 
@@ -168,7 +169,6 @@ def main(run_id: str):
     qnet.eval()
 
     route = generate_route(env, qnet, pois, main_categories, is_accommodation)
-
     route_dict = [step.to_dict() for step in route]
 
     with open("route.json", "w") as f:

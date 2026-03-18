@@ -27,6 +27,10 @@ st.markdown("Vision des POIs & routes disponibles pour des itinéraires de voyag
 @st.cache_data
 def load_pois():
     pois = gpd.read_parquet(GOLD_POIS_GEOPARQUET)
+    st.table(pois[pois['name'].isin(["Les P'Tits Banquets", "Eden - Cie Jaleo", "Table d'orientation - Belvédère de la Ramasse", "L'Escampette"])])
+    pois = pois.to_crs(DEFAULT_CRS)
+    st.table(pois[pois['name'].isin(["Les P'Tits Banquets", "Eden - Cie Jaleo", "Table d'orientation - Belvédère de la Ramasse", "L'Escampette"])])
+    
     return pois.to_crs(DEFAULT_CRS)
 
 
@@ -52,7 +56,7 @@ request_body = {
     "start_poi": int(start_poi),
     "start_day": int(start_day),
     "num_days": int(nb_jour),
-    "model_name": "4287957a48224b1c97cbf3e610c6aaa0",
+    "model_name": "452facbee15240638fa590ca7c37698c",
     "config_path": "config.yaml",
 }
 
@@ -65,10 +69,14 @@ if st.sidebar.button("Générer Itinéraire !", type="primary"):
     st.session_state.itinerary = json.loads(x.text)
 
 itinerary = st.session_state.itinerary
+st.table(itinerary)
 
 # ----------------- FILTER POIS -----------------
 l_poi_idx = [item["poi_idx"] for item in itinerary]
+st.write(l_poi_idx)
 pois_filtered = pois.loc[pois.index.isin(l_poi_idx)].copy()
+st.table(pois_filtered)
+st.table(pois[pois['name'].isin(["Les P'Tits Banquets", "Eden - Cie Jaleo", "Table d'orientation - Belvédère de la Ramasse", "L'Escampette"])])
 
 # Garde l'ordre d'itinéraire des POIs
 order_map = {poi["poi_idx"]: i for i, poi in enumerate(itinerary)}
@@ -99,7 +107,7 @@ try:
         folium.Marker(
             location=[row.geometry.y, row.geometry.x],
             popup=folium.Popup(
-                f"<h4>{i}. {name}</h4><ul>"
+                f"<h4>{i}. {_} {name}</h4><ul>"
                 f"<li><b>Catégorie:</b> {category}</li>"
                 f"<li><b>Horaires:</b> {oh}</li>"
                 f"<li><b>Email:</b> {em}</li>"
@@ -176,7 +184,7 @@ with col2:
     for i, row in enumerate(itinerary, start=1):
         st.markdown(f"**Étape {i}**")
         # st.write(row)
-        st.markdown(f"""
+        st.markdown(f"""{row}
  | Nom | **{row['poi_name']}**  
  | :-- | :--
  | Temps de trajet | **{int(row['travel_time']/60)}h {int(row['travel_time']%60)}m**  

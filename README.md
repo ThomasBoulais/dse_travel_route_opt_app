@@ -49,19 +49,29 @@ Puis parmi les actions possibles :
     python -m travel_route_optimization.model_training.eval_route <RUN_ID>
     ```
 
-6. Pour voir les modèles déjà entraînés, installer MLFlow et lancer un serveur
+6. Pour voir les modèles déjà entraînés et en entraîner d'autres, installer MLFlow et lancer un serveur
     ```
     pip install mlflow
 
-    mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --default-artifact-root file:C:\Users\thoma\Documents\python_projects\dse_travel_route_opt_app\mlruns --serve-artifacts
-    ```
+    mlflow server  --host 0.0.0.0  --port 5000  --backend-store-uri sqlite:///mlruns/mlflow.db  --default-artifact-root file:mlruns
+
+    $env:MLFLOW_TRACKING_URI = "http://localhost:5000"
+
+    python -m travel_route_optimization.model_training.train_dqn
+
+    python -m travel_route_optimization.model_training.register_model
+    ```  
+
+    <div class="alert-box alert-box-warning">
+    Une étape de passage d'un modèle en production est nécessaire via l'UX MLFlow afin d'y avoir accès via fastapi
+    </div>
 
 7. Pour accéder au modèle, lancer un serveur UVICORN
     ```
     uvicorn travel_route_optimization.api.fastapi_app:app --reload
     ```
 
-    Then access fastapi with `http://localhost:8000/docs` and try out itinerary or in shell:
+    Puis accéder à fastapi via `http://localhost:8000/docs` ou shell et essayer le modèle pour obtenir un itinéraire:
     ```
     curl -X 'POST' \
     'http://localhost:8000/itinerary' \
@@ -71,7 +81,7 @@ Puis parmi les actions possibles :
         "start_poi": 0,
         "start_day": 0,
         "num_days": 3,
-        "model_name": "4287957a48224b1c97cbf3e610c6aaa0",
+        "model_name": "tdtoptw_dqn",
         "config_path": "config.yaml"
         }'
     ```
