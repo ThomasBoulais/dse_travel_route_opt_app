@@ -69,14 +69,8 @@ request_body = {
 if "itinerary" not in st.session_state:
     st.session_state.itinerary = None
 
-# 1. Initialize session state
-if "itinerary" not in st.session_state:
-    st.session_state.itinerary = None
-
-# 2. Sidebar button
 generate = st.sidebar.button("Générer Itinéraire !", type="primary")
 
-# 3. If button clicked, call API ONCE
 if generate:
     try:
         x = requests.post(ITINERARY_URL, json=request_body, timeout=10)
@@ -86,15 +80,11 @@ if generate:
         st.error(f"Erreur de connexion à l'API: {e}")
         st.stop()
 
-# 4. If no itinerary yet, stop here
 if st.session_state.itinerary is None:
     st.info("Cliquez sur le bouton pour générer un itinéraire.")
     st.stop()
 
-# 5. From here on, itinerary is guaranteed to exist
 itinerary = st.session_state.itinerary
-
-
 # st.table(itinerary)
 
 # ----------------- FILTER POIS -----------------
@@ -154,7 +144,6 @@ try:
 
     poi_layer.add_to(m)
 
-    # ---- ROAD EDGES FOR ITINERARY ----
     route_layer = folium.FeatureGroup(name="Route", show=True)
 
     # Récup le node le plus proche de chaque POI
