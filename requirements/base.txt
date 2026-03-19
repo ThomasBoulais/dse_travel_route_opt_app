@@ -4,3 +4,10 @@ osmnx
 rapidfuzz
 scikit-learn
 omegaconf
+fastapi
+pyyaml
+torch
+mlflow
+streamlit
+folium
+streamlit_folium
