@@ -8,9 +8,9 @@ Les différentes étapes du projet sont à ce jour :
 2. Visualisation des POIs & réseaux de route ✅
 3. Premier jet d'optimisation d'un itinéraire en RL ✅
 4. Ajout de versioning (MLFlow) + Passage en API (fastapi) ✅
-5. Architecture complète de la donnée avec contraintes utilisateur 👀
-6. UX/UI 😴
-7. Branchement Front-Back 😴
+5. Architecture complète de la donnée avec contraintes utilisateur ✅
+6. UX/UI ✅
+7. Dockerisation 👀
 8. CICD 😴
 
 ## Comment lancer hors Docker
