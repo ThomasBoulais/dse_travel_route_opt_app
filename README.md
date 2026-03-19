@@ -13,7 +13,7 @@ Les différentes étapes du projet sont à ce jour :
 7. Branchement Front-Back 😴
 8. CICD 😴
 
-## Comment lancer
+## Comment lancer hors Docker
 
 1. Créer un virtualenv `.venv` :
     ```sh
@@ -81,16 +81,23 @@ Puis parmi les actions possibles :
         }'
     ```
 
-7. 
+7. Enfin lancer le serveur Streamlit pour avoir l'UX de la web app 
+    ```sh
+    streamlit run src\ui\app.py
+    ```
 
-## Todo du moment
+## Comment lancer avec Docker \[WIP]
 
-- Découvrir Streamlit et ses fonctionnalités
-- Penser une UX avec prise en charge des inputs User
-- Prendre en main Folium / voir si compat possible avec Streamlit & faire affichage clair d'un itinéraire
-- (modifier RL pour améliorer le bail et/ou rendre les profits des différentes catégories modifiables)
+1. Une fois l'ensemble des briques fonctionnelles, lancer un premier entraînement pour s'assurer que mlflow.db ne soit pas nul
+    ```sh
+    docker compose up -d mlflow
+    python -m src.model_training.train_dqn
+    python -m src.model_training.register_model <RUN_ID>
+    python -m src.model_training.promote_model
+    docker-compose up --build  
+    ```
 
-## RoadMap
+## Todo
 - ~Vérifier que les geometry DATATourisme sont des points et pas des polygones~
 - ~Retaper l'archi du projet pour qu'il soit clair~
 - ~Faire l'enrichissement des données OSM & DATATourisme pour passer en Gold~
