@@ -124,8 +124,8 @@ def generate_itinerary(model_name: str, start_poi: int, start_day: int, num_days
 
     config_path = Path(config_path)
     if not config_path.is_absolute():
-        base_dir = Path(__file__).parent
-        config_path = (base_dir / ".." / "model_training" / config_path).resolve()
+        base_dir = Path(__file__).parents[1]
+        config_path = (base_dir / ".." / "configs" / config_path).resolve()
 
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)

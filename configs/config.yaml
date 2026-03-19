@@ -3,6 +3,7 @@ paths:
   bronze_dir: "data/bronze"
   silver_dir: "data/silver"
   gold_dir: "data/gold"
+  config_dir: "configs"
 
 crs:
   default: "EPSG:4326"

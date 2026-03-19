@@ -2,8 +2,8 @@ experiment_name: "tdtoptw_dqn"
 run_name: "qsa_multiday_v1"
 
 data:
-  pois_geoparquet: "travel_route_optimization/data/gold/pois.geoparquet"
-  knn_drive_time_graph_df: "travel_route_optimization/data/gold/knn_drive_time_graph_df.csv"
+  pois_geoparquet: "data/gold/pois.geoparquet"
+  knn_drive_time_graph_df: "data/gold/knn_drive_time_graph_df.csv"
 
 env:
   start_poi_idx: 0

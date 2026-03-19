@@ -1,12 +1,11 @@
 import os
 import json
+from pathlib import Path
 import yaml
 import numpy as np
 import torch
 import mlflow
-import mlflow.pytorch
 import sys
-import pandas as pd
 import geopandas as gpd
 
 from dataclasses import dataclass
@@ -151,7 +150,7 @@ def load_pois_and_metadata(cfg):
 
 
 def main(run_id: str):
-    config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    config_path = Path(__file__).parents[2] / "configs/training.yaml"
 
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)

@@ -1,6 +1,6 @@
 # virtualenv & testing grounds
 .venv
-testing_grounds/
+testing_grounds
 
 # cache & pycache
 cache 
@@ -26,5 +26,3 @@ models/
 
 # Evaluation outputs
 route.json
-
-testing_grounds/*.csv

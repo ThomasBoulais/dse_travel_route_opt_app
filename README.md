@@ -39,17 +39,10 @@ Puis parmi les actions possibles :
 
 4. Lancer la pipeline pour récupérer les données
     ```sh
-    python3 -m travel_route_optimization.data_pipeline.pipeline
+    python3 -m src.data_pipeline.pipeline_runner
     ```
 
-5. Lancer l'entrainement de RL
-    ```sh
-    python3 -m travel_route_optimization.model_training.train_dqn
-
-    python -m travel_route_optimization.model_training.eval_route <RUN_ID>
-    ```
-
-6. Pour voir les modèles déjà entraînés et en entraîner d'autres, installer MLFlow et lancer un serveur
+5. Pour voir les modèles déjà entraînés et en entraîner d'autres, installer MLFlow et lancer un serveur
     ```
     pip install mlflow
 
@@ -57,18 +50,16 @@ Puis parmi les actions possibles :
 
     $env:MLFLOW_TRACKING_URI = "http://localhost:5000"
 
-    python -m travel_route_optimization.model_training.train_dqn
+    python -m src.model_training.train_dqn
 
-    python -m travel_route_optimization.model_training.register_model
+    python -m src.model_training.register_model <RUN_ID>
     ```  
 
-    <div class="alert alert-warning">
-    ⚠️ Il faut qu'un modèle soit en production afin d'y avoir accès via fastapi (possible via UX MLFlow)
-    </div>
+    ⚠️ Vérifier qu'un modèle est en production afin d'y avoir accès via fastapi (UX MLFlow)
 
-7. Pour accéder au modèle via fastapi, lancer un serveur UVICORN
+6. Pour accéder au modèle via fastapi, lancer un serveur UVICORN
     ```
-    uvicorn travel_route_optimization.api.fastapi_app:app --reload
+    uvicorn src.api.fastapi_app:app --reload
     ```
 
     Puis accéder à fastapi via `http://localhost:8000/docs` ou shell et essayer le modèle pour obtenir un itinéraire:
@@ -82,11 +73,11 @@ Puis parmi les actions possibles :
         "start_day": 0,
         "num_days": 3,
         "model_name": "tdtoptw_dqn",
-        "config_path": "config.yaml"
+        "config_path": "training.yaml"
         }'
     ```
 
-8. 
+7. 
 
 ## Todo du moment
 

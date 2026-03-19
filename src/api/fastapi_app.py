@@ -7,7 +7,7 @@ mlflow.set_tracking_uri("http://localhost:5000")
 
 app = FastAPI(
     title="Travel Route Optimization API",
-    description="Generate optimized multi-day itineraries using a trained DQN model.",
+    description="Génération d'itinéraires mulit-jours optimisés avec un DQN model entraîné.",
     version="1.0.0"
 )
 
@@ -16,7 +16,7 @@ class ItineraryRequest(BaseModel):
     start_day: int
     num_days: int
     model_name: str = "tdtoptw_dqn"
-    config_path: str = "config.yaml"
+    config_path: str = "training.yaml"
 
 @app.post("/itinerary")
 def itinerary(request: ItineraryRequest):

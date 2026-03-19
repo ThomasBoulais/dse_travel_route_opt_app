@@ -58,7 +58,7 @@ request_body = {
     "start_day": int(start_day),
     "num_days": int(nb_jour),
     "model_name": "tdtoptw_dqn",
-    "config_path": "config.yaml",
+    "config_path": "training.yaml",
 }
 
 if "itinerary" not in st.session_state:

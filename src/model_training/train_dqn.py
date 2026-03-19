@@ -138,7 +138,7 @@ def select_action(env: TDTOPTWEnv, qnet: QNet, state: np.ndarray, epsilon: float
 # ---------------------------------------------------------
 # Training loop with MLflow
 # ---------------------------------------------------------
-def train(config_path: str = "travel_route_optimization/model_training/config.yaml"):
+def train(config_path: str = "configs/training.yaml"):
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
 
