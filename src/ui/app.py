@@ -1,5 +1,5 @@
 import json
-
+import os
 import streamlit as st
 import geopandas as gpd
 import folium
@@ -15,7 +15,12 @@ from src.common.config_loader import load_config
 cfg = load_config()
 
 # ----------------- CONFIG -----------------
-ITINERARY_URL = "http://localhost:8000/itinerary"
+
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+ITINERARY_URL = f"{API_URL}/itinerary"
+
+st.write("API_URL =", API_URL)
+st.write("ITINERARY_URL =", ITINERARY_URL)
 
 st.set_page_config(
     page_title="Travel Route Optimization",
@@ -62,14 +67,34 @@ request_body = {
 }
 
 if "itinerary" not in st.session_state:
-    x = requests.post(ITINERARY_URL, json=request_body)
-    st.session_state.itinerary = json.loads(x.text)
+    st.session_state.itinerary = None
 
-if st.sidebar.button("Générer Itinéraire !", type="primary"):
-    x = requests.post(ITINERARY_URL, json=request_body)
-    st.session_state.itinerary = json.loads(x.text)
+# 1. Initialize session state
+if "itinerary" not in st.session_state:
+    st.session_state.itinerary = None
 
+# 2. Sidebar button
+generate = st.sidebar.button("Générer Itinéraire !", type="primary")
+
+# 3. If button clicked, call API ONCE
+if generate:
+    try:
+        x = requests.post(ITINERARY_URL, json=request_body, timeout=10)
+        x.raise_for_status()
+        st.session_state.itinerary = x.json()
+    except Exception as e:
+        st.error(f"Erreur de connexion à l'API: {e}")
+        st.stop()
+
+# 4. If no itinerary yet, stop here
+if st.session_state.itinerary is None:
+    st.info("Cliquez sur le bouton pour générer un itinéraire.")
+    st.stop()
+
+# 5. From here on, itinerary is guaranteed to exist
 itinerary = st.session_state.itinerary
+
+
 # st.table(itinerary)
 
 # ----------------- FILTER POIS -----------------

@@ -32,7 +32,11 @@ Les différentes étapes du projet sont à ce jour :
 
 3. Installer les librairies requises
     ```sh
-    pip3 install -r requirements.txt
+    # Windows 
+    pip install -r requirements\w_requirements.txt
+    
+    # Linux
+    pip3 install -r requirements\l_requirements.txt
     ```
 
 Puis parmi les actions possibles : 

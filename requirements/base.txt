@@ -1,0 +1,6 @@
+fastparquet
+geopandas
+osmnx
+rapidfuzz
+scikit-learn
+omegaconf

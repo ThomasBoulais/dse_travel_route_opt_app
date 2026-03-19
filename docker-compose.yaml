@@ -1,0 +1,59 @@
+services:
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/mlflow.Dockerfile
+    container_name: mlflow
+    working_dir: /mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_ENABLE_JOB_SCHEDULER: "false"
+    volumes:
+      - ./mlflow/artifacts:/mlflow/artifacts
+      - ./mlflow/mlflow.db:/mlflow/mlflow.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 3s
+      timeout: 3s
+      start_period: 20s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: api
+    ports:
+      - "8000:8000"
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    volumes:
+      - ./models:/app/models
+      - ./configs:/app/configs
+      - ./data:/app/data
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ui:
+    build:
+      context: .
+      dockerfile: docker/ui.Dockerfile
+    container_name: ui
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: "http://api:8000"
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs
+    depends_on:
+      api:
+        condition: service_healthy

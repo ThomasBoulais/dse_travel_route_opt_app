@@ -2,6 +2,7 @@ import os
 import random
 from collections import deque
 from typing import Deque, Tuple
+from pathlib import Path
 
 import yaml
 import numpy as np
@@ -11,6 +12,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import mlflow
+from mlflow import MlflowClient
 
 from src.model_training.env_tdtoptw import TDTOPTWEnv
 from src.model_training.qnet import QNet
@@ -145,15 +147,23 @@ def train(config_path: str = "configs/training.yaml"):
     experiment_name = cfg["experiment_name"]
     run_name = cfg["run_name"]
 
-    # Use tracking URI from env if set, otherwise default local store
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
-    if tracking_uri:
-        mlflow.set_tracking_uri(tracking_uri)
+    # Always use MLflow server
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    mlflow.set_tracking_uri(tracking_uri)
+
+    # Connectivity check
+    try:
+        client = MlflowClient(tracking_uri)
+        client.get_experiment_by_name(experiment_name)
+    except Exception as e:
+        raise RuntimeError(
+            f"Cannot reach MLflow server at {tracking_uri}. "
+            f"Start the server and set MLFLOW_TRACKING_URI."
+        ) from e
 
     mlflow.set_experiment(experiment_name)
 
     with mlflow.start_run(run_name=run_name):
-        # Log config once at the beginning
         mlflow.log_artifact(config_path)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -163,6 +173,7 @@ def train(config_path: str = "configs/training.yaml"):
         action_dim = env.max_actions
 
         dqn_cfg = cfg["dqn"]
+        mlflow.log_params(dqn_cfg)
 
         hidden_dim = dqn_cfg["hidden_dim"]
         gamma = dqn_cfg["gamma"]
@@ -173,8 +184,6 @@ def train(config_path: str = "configs/training.yaml"):
         epsilon_start = dqn_cfg["epsilon_start"]
         epsilon_end = dqn_cfg["epsilon_end"]
         epsilon_decay_episodes = dqn_cfg["epsilon_decay_episodes"]
-
-        mlflow.log_params(dqn_cfg)
 
         qnet = QNet(state_dim, action_dim, hidden_dim=hidden_dim).to(device)
         target_qnet = QNet(state_dim, action_dim, hidden_dim=hidden_dim).to(device)
@@ -264,20 +273,22 @@ def train(config_path: str = "configs/training.yaml"):
                     f"Loss: {last_loss if last_loss is not None else 'N/A'}"
                 )
 
+        # Save raw weights
         os.makedirs("models", exist_ok=True)
         model_path = "tdtoptw_dqn.pt"
         torch.save(qnet.state_dict(), model_path)
-        mlflow.log_artifact(model_path)
+        mlflow.log_artifact(str(Path(model_path).resolve()))
 
+        # Log the PyTorch model (pickle-based, stable, no torch.export)
         mlflow.pytorch.log_model(
             pytorch_model=qnet,
             artifact_path="model"
         )
 
         print("\nTraining terminé.")
-        print("Poids bruts (raw weights) sauvegardés sous tdtoptw_dqn.pt")
+        print("Poids bruts sauvegardés sous tdtoptw_dqn.pt")
         print("MLflow model loggué sous artifacts/model/")
-        print("La run peut être enregistrée dans le MLflow Model Registry.")
+        print("La run peut maintenant être enregistrée dans le Model Registry.")
 
 
 if __name__ == "__main__":
