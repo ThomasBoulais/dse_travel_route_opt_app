@@ -26,7 +26,13 @@ Les différentes étapes du projet sont à ce jour :
     source .venv\bin\activate
 
     # powershell
+    
+    # A ré-exécuter à chaque démarrage de la machine
     Set-ExecutionPolicy Unrestricted -Scope Process
+    
+    # A exécuter 1 fois
+    Set-ExecutionPolicy Unrestricted LocalMachine
+    
     .venv\Scripts\activate.ps1
     ```
 
@@ -84,7 +90,7 @@ Puis parmi les actions possibles :
 
 ## Comment lancer avec Docker \[WIP]
 
-1. Une fois l'ensemble des briques fonctionnelles, lancer un premier entraînement pour s'assurer que mlflow.db ne soit pas nul
+1. Une fois l'ensemble des briques fonctionnelles, lancer un premier entraînement pour s'assurer que mlflow.db ne soit pas vide (sur windows: s'assurer que Docker desktop est lancé)
     ```sh
     docker compose up -d mlflow
     python -m src.model_training.train_dqn
