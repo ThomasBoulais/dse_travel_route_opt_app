@@ -50,7 +50,7 @@ def transform_silver(pois_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return slim_pois_gdf
 
 
-def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_walk: gpd.GeoDataFrame) -> None:
+def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame=None, G_walk: gpd.GeoDataFrame=None) -> None:
     """ Sauvegarde en  GeoParquet & Graphml (passage Bronze => Silver)."""
     if slim_pois_gdf.crs is None:
         slim_pois_gdf = slim_pois_gdf.set_crs(cfg.crs.default)
@@ -58,10 +58,12 @@ def export_silver(slim_pois_gdf: gpd.GeoDataFrame, G_drive: gpd.GeoDataFrame, G_
     slim_pois_gdf.to_parquet(cfg.silver.osm_geoparquet)
     log.info(f"Bronze => Silver (OSM) : GeoParquet POIs sauvegardés à {cfg.silver.osm_geoparquet}")
 
-    ox.save_graphml(G_drive, filepath=cfg.silver.drive_graphml)
-    log.info(f"Bronze => Silver (OSM) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
-    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {cfg.silver.drive_graphml}")
+    if G_drive is not None:
+        ox.save_graphml(G_drive, filepath=cfg.silver.drive_graphml)
+        log.info(f"Bronze => Silver (OSM) : {len(G_drive.nodes)} noeuds (nodes) et {len(G_drive.edges)} arrêtes (edges) dans le réseau de route 'drive'.")
+        log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {cfg.silver.drive_graphml}")
 
-    ox.save_graphml(G_walk, filepath=cfg.silver.walk_graphml)
-    log.info(f"Bronze => Silver (OSM) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
-    log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {cfg.silver.walk_graphml}")
+    if G_walk is not None:
+        ox.save_graphml(G_walk, filepath=cfg.silver.walk_graphml)
+        log.info(f"Bronze => Silver (OSM) : {len(G_walk.nodes)} noeuds (nodes) et {len(G_walk.edges)} arrêtes (edges) dans le réseau de route 'walk'.")
+        log.info(f"Bronze => Silver (OSM) : Graphml sauvegardés à {cfg.silver.walk_graphml}")

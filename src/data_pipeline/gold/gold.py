@@ -9,7 +9,7 @@ import geopandas as gpd
 import logging
 import osmnx as ox
 from rapidfuzz import fuzz, utils # https://github.com/rapidfuzz/RapidFuzz
-
+from tqdm import tqdm
 
 # from src.utils.config import DEFAULT_CRS, DRIVE_SPEED, DT_SILVER_GEOPARQUET, GOLD_DRIVE_GRAPHML, GOLD_POIS_CSV, GOLD_POIS_GEOPARQUET, KNN_DRIVE_TIME_GRAPH_DF, OSM_SILVER_GEOPARQUET
 from src.data_pipeline.utils.pipeline_helpers import extract_categories, add_interest_score, add_travel_time, add_visit_duration, dt_add_category, dt_add_open_hour_mask, get_knn_pois, nearest_node, osm_add_category, osm_add_open_hour_mask, to_geopandas, travel_time
@@ -140,7 +140,7 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
     log.info(f"Silver => Gold (KNN_GRAPH) : Création du graphe KNN des temps de route entre POIs")
     
     edges = []
-    for i, poi in pois.iterrows():
+    for i, poi in tqdm(pois.iterrows(), total=pois.shape[0], desc="nearest neighbor calculation"):
         u = poi["nearest_node"]
         for j in neighbors[i]:
             v = pois.iloc[j]["nearest_node"]
@@ -169,7 +169,7 @@ def create_knn_drive_graph(G_drive: gpd.GeoDataFrame, pois: gpd.GeoDataFrame) ->
     all_pois = set(range(len(pois)))
     isolated = all_pois - unique_from
 
-    for poi in isolated:
+    for poi in tqdm(isolated, desc="nearest isolated neighbor leftover"):
         nearest = neighbors[poi][0]
         u = pois.loc[poi, "nearest_node"]
         v = pois.loc[nearest, "nearest_node"]

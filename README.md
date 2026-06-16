@@ -92,10 +92,18 @@ Puis parmi les actions possibles :
 
 1. Une fois l'ensemble des briques fonctionnelles, lancer un premier entraînement pour s'assurer que mlflow.db ne soit pas vide (sur windows: s'assurer que Docker desktop est lancé)
     ```sh
-    docker compose up -d mlflow
-    python -m src.model_training.train_dqn
-    python -m src.model_training.register_model <RUN_ID>
-    python -m src.model_training.promote_model
+    # Linux
+    chmod +x scripts/init_mlruns.sh
+    ./src/init_mlruns.sh
+
+    # Windows
+    .\src\init_mlruns.ps1
+    
+    # si première itération, instancier un training
+    docker compose --profile manual up -d mlflow training
+    docker-compose down
+
+    docker-compose up -d mlflow api ui
     docker-compose up --build  
     ```
 

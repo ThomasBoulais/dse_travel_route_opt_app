@@ -148,7 +148,7 @@ def train(config_path: str = "configs/training.yaml"):
     run_name = cfg["run_name"]
 
     # Always use MLflow server
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
     mlflow.set_tracking_uri(tracking_uri)
 
     # Connectivity check
@@ -164,6 +164,9 @@ def train(config_path: str = "configs/training.yaml"):
     mlflow.set_experiment(experiment_name)
 
     with mlflow.start_run(run_name=run_name):
+        mlflow.set_tag("model_type", "DQN")
+        mlflow.set_tag("environment", "travel_route_optimization")
+    
         mlflow.log_artifact(config_path)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -273,22 +276,39 @@ def train(config_path: str = "configs/training.yaml"):
                     f"Loss: {last_loss if last_loss is not None else 'N/A'}"
                 )
 
-        # Save raw weights
-        os.makedirs("models", exist_ok=True)
-        model_path = "tdtoptw_dqn.pt"
-        torch.save(qnet.state_dict(), model_path)
-        mlflow.log_artifact(str(Path(model_path).resolve()))
+        # -------------------------
+        # Save & log model artifacts
+        # -------------------------
+        # CHANGE: use run_id to avoid overwriting local files and to link artifacts to the run
+        run_id = mlflow.active_run().info.run_id
+        print(f"Model logged to MLflow with run_id: {run_id}")
 
-        # Log the PyTorch model (pickle-based, stable, no torch.export)
+        # CHANGE: persist a state_dict locally (non-pickled) named with run_id
+        os.makedirs("models", exist_ok=True)
+        state_path = f"models/tdtoptw_dqn_{run_id}.pt"
+        torch.save(qnet.state_dict(), state_path)
+        # CHANGE: log the state_dict as an artifact under a dedicated artifact path
+        mlflow.log_artifact(state_path, artifact_path="state_dicts")
+
+        # CHANGE: prepare a small input example as numpy array (MLflow accepts numpy/pandas, not torch.Tensor)
+        try:
+            import numpy as _np
+            input_example = _np.zeros((1, state_dim), dtype=_np.float32)
+        except Exception:
+            input_example = None
+
+        # CHANGE: log the full PyTorch model via MLflow and register it if registry is available.
+        # This becomes the canonical model artifact; prefer this over ad-hoc local models folder.
         mlflow.pytorch.log_model(
             pytorch_model=qnet,
-            artifact_path="model"
+            artifact_path="model",
+            input_example=input_example,
+            registered_model_name="tdtoptw_dqn",
         )
 
         print("\nTraining terminé.")
-        print("Poids bruts sauvegardés sous tdtoptw_dqn.pt")
-        print("MLflow model loggué sous artifacts/model/")
-        print("La run peut maintenant être enregistrée dans le Model Registry.")
+        print(f"State dict saved to: {state_path} (also logged to mlflow under state_dicts/)")
+        print("MLflow model logged under artifacts/model/ and registered (if registry is available).")
 
 
 if __name__ == "__main__":
