@@ -15,6 +15,8 @@ import logging
 from pathlib import Path
 import requests
 import zipfile
+from tqdm import tqdm
+from pprint import pprint
 
 # from src.utils.config import DT_DUMP_DIR, DT_DUMP_PATH, DT_DUMP_URL, DT_INDEX_FILE
 from src.common.config_loader import load_config
@@ -57,10 +59,11 @@ def ingest_bronze(index: list[dict]) -> list[dict]:
     Parcourt tous les fichiers JSON référencés dans l'index (Bronze).
     Retourne la liste brute des entrées JSON-LD parsées.
     """
-    raw_entries = []
+    
+    '''raw_entries = []
     errors = 0
 
-    for item in index:
+    for item in tqdm(index, desc="Récup. données JSON référencées dans index.json"):
         filepath = Path(cfg.bronze.dt_dump_dir) / 'objects' / item["file"]
         if not filepath.exists():
             log.warning(f"Source => Bronze (DATATOURISME) : Fichier introuvable {filepath}")
@@ -74,6 +77,34 @@ def ingest_bronze(index: list[dict]) -> list[dict]:
                 raw_entries.extend(entry["@graph"])
             else:
                 raw_entries.append(entry)
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning(f"Source => Bronze (DATATOURISME) : Erreur lecture {filepath} : {e}")
+            errors += 1
+
+    log.info(f"Source => Bronze (DATATOURISME) : {len(raw_entries):,} objets chargés ({errors} erreurs).")
+    return raw_entries'''
+
+    
+    raw_entries = []
+    errors = 0
+
+    # index = index[:50]
+    for item in tqdm(index, desc="Récup. données JSON référencées dans index.json"):
+        filepath = Path(cfg.bronze.dt_dump_dir) / 'objects' / item["file"]
+        if not filepath.exists():
+            log.warning(f"Source => Bronze (DATATOURISME) : Fichier introuvable {filepath}")
+            errors += 1
+            continue
+        try:
+            with open(filepath, encoding="utf-8") as f:
+                entry = json.load(f)
+            # Certains fichiers encapsulent l'objet dans un @graph
+            if "@graph" in entry:
+                if cfg.bronze.dt_place_name == entry["@graph"]["isLocatedAt"][0]["schema:address"][0]["hasAddressCity"]["isPartOfDepartment"]["rdfs:label"]["fr"][0]:
+                    raw_entries.extend(entry["@graph"])
+            else:
+                if cfg.bronze.dt_place_name == entry["isLocatedAt"][0]["schema:address"][0]["hasAddressCity"]["isPartOfDepartment"]["rdfs:label"]["fr"][0]:
+                    raw_entries.append(entry)
         except (json.JSONDecodeError, OSError) as e:
             log.warning(f"Source => Bronze (DATATOURISME) : Erreur lecture {filepath} : {e}")
             errors += 1

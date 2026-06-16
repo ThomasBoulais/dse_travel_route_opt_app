@@ -433,7 +433,7 @@ def get_knn_pois(pois: gpd.GeoDataFrame) -> list[int]:
     tree = BallTree(np.radians(coords), metric="haversine")
     
     distances, indices = tree.query(np.radians(coords), k=cfg.parameters.knn_value + 1)
-    neighbors = [set(idx[1:]) for idx in indices]
+    neighbors = [idx[1:] for idx in indices]
     return neighbors
 
 

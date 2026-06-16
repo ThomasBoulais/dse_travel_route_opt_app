@@ -11,7 +11,7 @@ import geopandas as gpd
 
 from src.model_training.train_dqn import load_env_train
 from src.model_training.qnet import QNet
-from src.inference.generate_itinerary import generate_route, RouteStep
+from src.inference.generate_itinerary import generate_route
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -62,10 +62,27 @@ async def lifespan(app: FastAPI):
     qnet = QNet(state_dim, n_actions).to(device)
 
     model_name = "tdtoptw_dqn"
-    model_uri = f"models:/{model_name}/Production"
-    mlflow_model = mlflow.pytorch.load_model(model_uri)
+
+    # Try to load the Production alias first, fall back to latest version
+    try:
+        model_uri = f"models:/{model_name}/Production"
+        print(f"Loading model from: {model_uri}")
+        mlflow_model = mlflow.pytorch.load_model(model_uri)
+    except Exception as e:
+        print(f"Warning: Production alias not found ({e})")
+        print(f"Falling back to latest version...")
+        try:
+            model_uri = f"models:/{model_name}/latest"
+            mlflow_model = mlflow.pytorch.load_model(model_uri)
+        except Exception as e2:
+            print(f"Warning: Latest alias not found ({e2})")
+            print(f"Falling back to version 1...")
+            model_uri = f"models:/{model_name}/1"
+            mlflow_model = mlflow.pytorch.load_model(model_uri)
+
     qnet.load_state_dict(mlflow_model.state_dict())
     qnet.eval()
+    print(f"Model loaded successfully from: {model_uri}")
 
     # 6) Cache everything
     app.state.env = env
@@ -76,7 +93,7 @@ async def lifespan(app: FastAPI):
     app.state.cfg = cfg
 
     yield
-
+    
     # (Optional) teardown logic here
     # e.g., close DB connections, etc.
 

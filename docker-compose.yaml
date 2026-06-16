@@ -11,8 +11,8 @@ services:
     environment:
       MLFLOW_ENABLE_JOB_SCHEDULER: "false"
     volumes:
-      - ./mlflow/artifacts:/mlflow/artifacts
-      - ./mlflow/mlflow.db:/mlflow/mlflow.db
+      - mlflow_artifacts:/mlflow/artifacts
+      - ./mlruns/mlflow.db:/mlflow/mlflow.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000"]
       interval: 3s
@@ -30,7 +30,7 @@ services:
     environment:
       MLFLOW_TRACKING_URI: "http://mlflow:5000"
     volumes:
-      - ./models:/app/models
+      - mlflow_artifacts:/mlflow/artifacts
       - ./configs:/app/configs
       - ./data:/app/data
     depends_on:
@@ -41,6 +41,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  training:
+    profiles: ["manual"] # Only runs with: docker compose --profile manual up
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+      - .:/app
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+    command: >
+      sh -c "
+      python -m src.model_training.train_dqn &&
+      python -m src.model_training.register_model &&
+      python -m src.model_training.promote_model
+      "
 
   ui:
     build:
@@ -57,3 +76,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+volumes:
+  mlflow_artifacts:
+    driver: local

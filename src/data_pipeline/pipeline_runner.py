@@ -50,29 +50,29 @@ def main():
     log.info("=== Source => Bronze (Ajout & lecture des fichiers bruts) ======================")
     log.info("Source => Bronze (OSM) : Démarrage pipeline")
     bbox_left, bbox_top, bbox_right, bbox_bottom = compute_bbox(cfg)
-    osm_pois_gdf    = osm_bronze.get_pois(bbox_left, bbox_right, bbox_bottom, bbox_top)
+    osm_pois_gdf    = osm_bronze.get_pois(place=cfg.bronze.osm_place_name)
     # G_drive         = osm_bronze.get_road_networks("drive") # sans boundary box
-    G_drive         = osm_bronze.get_road_networks("drive", bbox_left, bbox_right, bbox_bottom, bbox_top)
-    G_walk          = osm_bronze.get_road_networks("walk", bbox_left, bbox_right, bbox_bottom, bbox_top)
-    osm_bronze.ingest_bronze(osm_pois_gdf, G_drive, G_walk)
+    G_drive         = osm_bronze.get_road_networks("drive", place=cfg.bronze.osm_place_name)
+    # G_walk          = osm_bronze.get_road_networks("walk", place=cfg.bronze.osm_place_name)
+    osm_bronze.ingest_bronze(pois_gdf=osm_pois_gdf, G_drive=G_drive, G_walk=None)
     log.info("Source => Bronze (OSM) : Fin pipeline")
 
     log.info("Source => Bronze (DATATOURISME) : Démarrage pipeline")
     dt_bronze.get_dump()
     dt_bronze.extract_dump()
     index       = dt_bronze.load_index()
-    dt_raw_entries = dt_bronze.ingest_bronze(index)
+    ls_raw_entries = dt_bronze.ingest_bronze(index)
     log.info("Source => Bronze (DATATOURISME) : Fin pipeline")
 
 
     log.info("=== Bronze => Silver (transformation & nettoyage) ==============================")
     log.info("Bronze => Silver (OSM) : Démarrage pipeline")
     osm_pois_gdf = osm_silver.transform_silver(osm_pois_gdf)
-    osm_silver.export_silver(osm_pois_gdf, G_drive, G_walk)
+    osm_silver.export_silver(osm_pois_gdf, G_drive=G_drive, G_walk=None)
     log.info("Bronze => Silver (OSM) : Fin pipeline")
 
     log.info("Bronze => Silver (DATATOURISME) : Démarrage pipeline")
-    dt_pois_gdf = dt_silver.transform_silver(dt_raw_entries, bbox_left, bbox_right, bbox_bottom, bbox_top)
+    dt_pois_gdf = dt_silver.transform_silver(ls_raw_entries) #, bbox_left, bbox_right, bbox_bottom, bbox_top)
     dt_silver.export_silver(dt_pois_gdf)
     log.info("Bronze => Silver (DATATOURISME) : Fin pipeline")
     
